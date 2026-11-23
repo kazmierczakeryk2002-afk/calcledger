@@ -362,6 +362,46 @@ a:hover {
   letter-spacing: 0.02em;
 }
 
+.hero-shortcuts,
+.quick-strip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.quick-strip {
+  margin-top: 1rem;
+}
+
+.quick-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0.35rem 0.78rem;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--ink-primary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  text-decoration: none;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.quick-link:hover {
+  border-color: var(--accent);
+  background: var(--bg-tint);
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.quick-link.is-current {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
 /* ==========================================================================
    Calculator Workspace Shell
    ========================================================================== */

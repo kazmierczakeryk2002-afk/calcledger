@@ -2,6 +2,7 @@ import { SITE_CONFIG } from '../config.js';
 import { getRoutePath, getAbsoluteUrl } from '../data/routes.js';
 import { getI18n, escapeHtml } from '../data/i18n.js';
 import { VAT_COUNTRIES } from '../data/vat-countries.js';
+import { getMarketPriority, sortByKeyOrder } from '../data/market-priority.js';
 import {
   renderLayout,
   renderAdSlot,
@@ -16,13 +17,19 @@ import {
 
 export function renderVatPage(lang, country = null) {
   const t = getI18n(lang);
+  const market = getMarketPriority(lang);
+  const orderedCountries = sortByKeyOrder(VAT_COUNTRIES, market.vatCountryOrder);
   const pageKey = country ? `vat:${country.key}` : 'vat';
   const seo = country ? country.seo[lang] : t.vat;
   const defaultCurrency = country ? country.currency : SITE_CONFIG.defaultCurrencyByLang[lang];
   const defaultRate = country ? country.standardRate : lang === 'pl' ? 23 : lang === 'de' ? 19 : 20;
   const quickRates = country
     ? [country.standardRate, ...country.reducedRates]
-    : [23, 22, 21, 20, 19, 8.1, 7, 5];
+    : lang === 'pl'
+      ? [23, 8, 5, 19, 21, 20, 8.1]
+      : lang === 'de'
+        ? [19, 7, 20, 8.1, 21, 23]
+        : [20, 5, 23, 19, 21, 8.1];
 
   const breadcrumbs = [
     { label: t.common.home, href: getRoutePath('home', lang), url: getAbsoluteUrl('home', lang) },
@@ -36,6 +43,14 @@ export function renderVatPage(lang, country = null) {
     });
   }
 
+  const topCountryStripHtml = orderedCountries
+    .slice(0, 6)
+    .map((c) => {
+      const isCurrent = country && c.key === country.key;
+      return `<a class="quick-link${isCurrent ? ' is-current' : ''}" href="${escapeHtml(getRoutePath(`vat:${c.key}`, lang))}"${isCurrent ? ' aria-current="page"' : ''}>${escapeHtml(c.names[lang])} ${c.standardRate}%</a>`;
+    })
+    .join('');
+
   const rateChipsHtml = quickRates
     .map(
       (r) =>
@@ -47,14 +62,16 @@ export function renderVatPage(lang, country = null) {
     .map((amt) => `<button type="button" class="pill-btn" data-vat-amount="${amt}">${amt}</button>`)
     .join('');
 
-  const countryLinksHtml = VAT_COUNTRIES.map((c) => {
-    const isCurrent = country && c.key === country.key;
-    return `<a class="chip-card${isCurrent ? ' is-current' : ''}" href="${escapeHtml(getRoutePath(`vat:${c.key}`, lang))}"${isCurrent ? ' aria-current="page"' : ''}>
+  const countryLinksHtml = orderedCountries
+    .map((c) => {
+      const isCurrent = country && c.key === country.key;
+      return `<a class="chip-card${isCurrent ? ' is-current' : ''}" href="${escapeHtml(getRoutePath(`vat:${c.key}`, lang))}"${isCurrent ? ' aria-current="page"' : ''}>
       <span class="chip-card__code">${escapeHtml(c.code)}</span>
       <span class="chip-card__name">${escapeHtml(c.names[lang])}</span>
       <span class="chip-card__meta">${c.standardRate}% · ${c.currency}</span>
     </a>`;
-  }).join('');
+    })
+    .join('');
 
   const countryTableHtml = country
     ? `<section class="content-section">
@@ -96,6 +113,7 @@ export function renderVatPage(lang, country = null) {
         </div>
         <h1>${escapeHtml(seo.h1)}</h1>
         <p class="page-head__sub">${escapeHtml(seo.subtitle)}</p>
+        <nav class="quick-strip" aria-label="${escapeHtml(t.common.countryGuides)}">${topCountryStripHtml}</nav>
       </header>
 
       ${renderAdSlot('topBanner', t)}

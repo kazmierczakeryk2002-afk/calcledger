@@ -3,6 +3,7 @@ import { getI18n, escapeHtml } from '../data/i18n.js';
 import { VAT_COUNTRIES } from '../data/vat-countries.js';
 import { MARKETPLACES } from '../data/marketplaces.js';
 import { PAYMENT_PROVIDERS } from '../data/payment-providers.js';
+import { getMarketPriority, sortByKeyOrder } from '../data/market-priority.js';
 import {
   renderLayout,
   renderAdSlot,
@@ -13,8 +14,9 @@ import {
 
 export function renderHomePage(lang) {
   const t = getI18n(lang);
+  const market = getMarketPriority(lang);
 
-  const coreTools = [
+  const allCoreTools = [
     { key: 'vat', tag: 'VAT / MwSt', title: t.vat.cardTitle, desc: t.vat.cardDesc },
     { key: 'marketplace', tag: 'E-Commerce', title: t.marketplace.cardTitle, desc: t.marketplace.cardDesc },
     { key: 'payment', tag: 'Payments', title: t.payment.cardTitle, desc: t.payment.cardDesc },
@@ -23,6 +25,17 @@ export function renderHomePage(lang) {
     { key: 'freelance', tag: 'B2B', title: t.freelance.cardTitle, desc: t.freelance.cardDesc },
     { key: 'compound', tag: 'ROI & Growth', title: t.compound.cardTitle, desc: t.compound.cardDesc },
   ];
+  const coreTools = sortByKeyOrder(allCoreTools, market.toolOrder);
+  const orderedVatCountries = sortByKeyOrder(VAT_COUNTRIES, market.vatCountryOrder);
+  const orderedMarketplaces = sortByKeyOrder(MARKETPLACES, market.marketplaceOrder);
+  const orderedPayments = sortByKeyOrder(PAYMENT_PROVIDERS, market.paymentOrder);
+
+  const heroShortcutsHtml = market.heroQuickLinks
+    .map(
+      (link) =>
+        `<a class="quick-link" href="${escapeHtml(getRoutePath(link.pageKey, lang))}">${escapeHtml(link.label)} &rarr;</a>`
+    )
+    .join('');
 
   const toolsHtml = coreTools
     .map(
@@ -35,27 +48,33 @@ export function renderHomePage(lang) {
     )
     .join('');
 
-  const vatLinksHtml = VAT_COUNTRIES.map(
-    (c) => `<a class="chip-card" href="${escapeHtml(getRoutePath(`vat:${c.key}`, lang))}">
+  const vatLinksHtml = orderedVatCountries
+    .map(
+      (c) => `<a class="chip-card" href="${escapeHtml(getRoutePath(`vat:${c.key}`, lang))}">
       <span class="chip-card__code">${escapeHtml(c.code)}</span>
       <span class="chip-card__name">${escapeHtml(c.names[lang])}</span>
       <span class="chip-card__meta">${c.standardRate}% · ${c.currency}</span>
     </a>`
-  ).join('');
+    )
+    .join('');
 
   const mpLinksHtml =
-    MARKETPLACES.map(
-      (m) => `<a class="chip-card chip-card--mp" href="${escapeHtml(getRoutePath(`marketplace:${m.key}`, lang))}">
+    orderedMarketplaces
+      .map(
+        (m) => `<a class="chip-card chip-card--mp" href="${escapeHtml(getRoutePath(`marketplace:${m.key}`, lang))}">
         <span class="chip-card__name">${escapeHtml(m.name)}</span>
         <span class="chip-card__desc">${escapeHtml(m.feeSummary[lang])}</span>
       </a>`
-    ).join('') +
-    PAYMENT_PROVIDERS.map(
-      (p) => `<a class="chip-card chip-card--mp" href="${escapeHtml(getRoutePath(`payment:${p.key}`, lang))}">
+      )
+      .join('') +
+    orderedPayments
+      .map(
+        (p) => `<a class="chip-card chip-card--mp" href="${escapeHtml(getRoutePath(`payment:${p.key}`, lang))}">
         <span class="chip-card__name">${escapeHtml(p.name)}</span>
         <span class="chip-card__desc">${escapeHtml(p.feeSummary[lang])}</span>
       </a>`
-    ).join('');
+      )
+      .join('');
 
   const whyHtml = t.home.whyItems
     .map(
@@ -73,6 +92,9 @@ export function renderHomePage(lang) {
         <p class="hero__eyebrow">${escapeHtml(t.common.localBadge)}</p>
         <h1 class="hero__title">${escapeHtml(t.home.h1)}</h1>
         <p class="hero__subtitle">${escapeHtml(t.home.subtitle)}</p>
+        <nav class="hero-shortcuts" aria-label="${escapeHtml(t.home.toolsHeading)}">
+          ${heroShortcutsHtml}
+        </nav>
       </div>
     </section>
 

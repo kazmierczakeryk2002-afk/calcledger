@@ -3,6 +3,7 @@ import { getRoutePath, getAbsoluteUrl, getHreflangAlternates } from '../data/rou
 import { getI18n, escapeHtml, safeJsonLd } from '../data/i18n.js';
 import { VAT_COUNTRIES } from '../data/vat-countries.js';
 import { MARKETPLACES } from '../data/marketplaces.js';
+import { getMarketPriority, sortByKeyOrder } from '../data/market-priority.js';
 
 export function renderAdSlot(slotKey, t) {
   const active = isAdsenseActive();
@@ -143,7 +144,8 @@ export function renderFaqSection(faqs, heading) {
 }
 
 export function renderRelatedCalculators(currentTool, lang, t) {
-  const cards = [
+  const market = getMarketPriority(lang);
+  const allCards = [
     { key: 'vat', title: t.vat.cardTitle, desc: t.vat.cardDesc, badge: 'VAT / MwSt' },
     { key: 'marketplace', title: t.marketplace.cardTitle, desc: t.marketplace.cardDesc, badge: 'E-Commerce' },
     { key: 'payment', title: t.payment.cardTitle, desc: t.payment.cardDesc, badge: 'Payments' },
@@ -151,7 +153,8 @@ export function renderRelatedCalculators(currentTool, lang, t) {
     { key: 'margin', title: t.margin.cardTitle, desc: t.margin.cardDesc, badge: 'Pricing' },
     { key: 'freelance', title: t.freelance.cardTitle, desc: t.freelance.cardDesc, badge: 'B2B' },
     { key: 'compound', title: t.compound.cardTitle, desc: t.compound.cardDesc, badge: 'ROI' },
-  ]
+  ];
+  const cards = sortByKeyOrder(allCards, market.toolOrder)
     .filter((c) => c.key !== currentTool)
     .slice(0, 4);
 
@@ -183,6 +186,7 @@ export function renderLayout({
   robots = 'index, follow',
 }) {
   const t = getI18n(lang);
+  const market = getMarketPriority(lang);
   const canonical = pageKey ? getAbsoluteUrl(pageKey, lang) : '';
   const alternates = pageKey ? getHreflangAlternates(pageKey) : [];
   const ogLocale = SITE_CONFIG.locales[lang] || 'en_US';
@@ -203,15 +207,18 @@ export function renderLayout({
     ? `<meta name="google-adsense-account" content="${escapeHtml(SITE_CONFIG.adsenseClientId)}">\n  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${escapeHtml(SITE_CONFIG.adsenseClientId)}" crossorigin="anonymous"></script>`
     : '';
 
-  const navItems = [
-    { key: 'vat', label: t.nav.vat },
-    { key: 'marketplace', label: t.nav.marketplace },
-    { key: 'payment', label: t.nav.payment },
-    { key: 'roas', label: t.nav.roas },
-    { key: 'margin', label: t.nav.margin },
-    { key: 'freelance', label: t.nav.freelance },
-    { key: 'compound', label: t.nav.compound },
-  ];
+  const navItems = sortByKeyOrder(
+    [
+      { key: 'vat', label: t.nav.vat },
+      { key: 'marketplace', label: t.nav.marketplace },
+      { key: 'payment', label: t.nav.payment },
+      { key: 'roas', label: t.nav.roas },
+      { key: 'margin', label: t.nav.margin },
+      { key: 'freelance', label: t.nav.freelance },
+      { key: 'compound', label: t.nav.compound },
+    ],
+    market.toolOrder
+  );
 
   const desktopNavHtml = navItems
     .map(
@@ -228,7 +235,8 @@ export function renderLayout({
     })
     .join('');
 
-  const vatFooterLinks = VAT_COUNTRIES.slice(0, 7)
+  const vatFooterLinks = sortByKeyOrder(VAT_COUNTRIES, market.vatCountryOrder)
+    .slice(0, 7)
     .map(
       (c) =>
         `<li><a href="${escapeHtml(getRoutePath(`vat:${c.key}`, lang))}">${escapeHtml(c.names[lang])} (${c.standardRate}%)</a></li>`
@@ -236,9 +244,11 @@ export function renderLayout({
     .join('');
 
   const mpFooterLinks =
-    MARKETPLACES.map(
-      (m) => `<li><a href="${escapeHtml(getRoutePath(`marketplace:${m.key}`, lang))}">${escapeHtml(m.name)}</a></li>`
-    ).join('') +
+    sortByKeyOrder(MARKETPLACES, market.marketplaceOrder)
+      .map(
+        (m) => `<li><a href="${escapeHtml(getRoutePath(`marketplace:${m.key}`, lang))}">${escapeHtml(m.name)}</a></li>`
+      )
+      .join('') +
     `<li><a href="${escapeHtml(getRoutePath('payment:paypal', lang))}">PayPal</a></li>` +
     `<li><a href="${escapeHtml(getRoutePath('payment:stripe', lang))}">Stripe</a></li>`;
 

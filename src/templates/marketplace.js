@@ -2,6 +2,7 @@ import { SITE_CONFIG } from '../config.js';
 import { getRoutePath, getAbsoluteUrl } from '../data/routes.js';
 import { getI18n, escapeHtml, safeJsonLd } from '../data/i18n.js';
 import { MARKETPLACES } from '../data/marketplaces.js';
+import { getMarketPriority, sortByKeyOrder } from '../data/market-priority.js';
 import {
   renderLayout,
   renderAdSlot,
@@ -16,16 +17,12 @@ import {
 
 export function renderMarketplacePage(lang, marketplace = null) {
   const t = getI18n(lang);
+  const market = getMarketPriority(lang);
+  const orderedMarketplaces = sortByKeyOrder(MARKETPLACES, market.marketplaceOrder);
   const pageKey = marketplace ? `marketplace:${marketplace.key}` : 'marketplace';
   const seo = marketplace ? marketplace.seo[lang] : t.marketplace;
 
-  const fallbackPreset =
-    lang === 'pl'
-      ? MARKETPLACES.find((m) => m.key === 'allegro')
-      : lang === 'de'
-        ? MARKETPLACES.find((m) => m.key === 'amazon-fba')
-        : MARKETPLACES.find((m) => m.key === 'etsy');
-
+  const fallbackPreset = orderedMarketplaces[0];
   const activePreset = marketplace ? marketplace.presets : fallbackPreset.presets;
   const defaultCurrency = marketplace
     ? marketplace.defaultCurrency
@@ -44,22 +41,33 @@ export function renderMarketplacePage(lang, marketplace = null) {
   }
 
   const presetMap = {};
-  for (const m of MARKETPLACES) {
+  for (const m of orderedMarketplaces) {
     presetMap[m.key] = { ...m.presets, currency: m.defaultCurrency };
   }
 
-  const presetOptions = MARKETPLACES.map(
-    (m) =>
-      `<option value="${m.key}"${marketplace && m.key === marketplace.key ? ' selected' : ''}>${escapeHtml(m.name)}</option>`
-  ).join('');
+  const presetOptions = orderedMarketplaces
+    .map(
+      (m) =>
+        `<option value="${m.key}"${marketplace && m.key === marketplace.key ? ' selected' : ''}>${escapeHtml(m.name)}</option>`
+    )
+    .join('');
 
-  const mpLinksHtml = MARKETPLACES.map((m) => {
-    const isCurrent = marketplace && m.key === marketplace.key;
-    return `<a class="chip-card chip-card--mp${isCurrent ? ' is-current' : ''}" href="${escapeHtml(getRoutePath(`marketplace:${m.key}`, lang))}"${isCurrent ? ' aria-current="page"' : ''}>
+  const topMpStripHtml = orderedMarketplaces
+    .map((m) => {
+      const isCurrent = marketplace && m.key === marketplace.key;
+      return `<a class="quick-link${isCurrent ? ' is-current' : ''}" href="${escapeHtml(getRoutePath(`marketplace:${m.key}`, lang))}"${isCurrent ? ' aria-current="page"' : ''}>${escapeHtml(m.name)}</a>`;
+    })
+    .join('');
+
+  const mpLinksHtml = orderedMarketplaces
+    .map((m) => {
+      const isCurrent = marketplace && m.key === marketplace.key;
+      return `<a class="chip-card chip-card--mp${isCurrent ? ' is-current' : ''}" href="${escapeHtml(getRoutePath(`marketplace:${m.key}`, lang))}"${isCurrent ? ' aria-current="page"' : ''}>
       <span class="chip-card__name">${escapeHtml(m.name)}</span>
       <span class="chip-card__desc">${escapeHtml(m.feeSummary[lang])}</span>
     </a>`;
-  }).join('');
+    })
+    .join('');
 
   const tipsSection = marketplace
     ? `<section class="content-section">
@@ -81,6 +89,7 @@ export function renderMarketplacePage(lang, marketplace = null) {
         </div>
         <h1>${escapeHtml(seo.h1)}</h1>
         <p class="page-head__sub">${escapeHtml(seo.subtitle)}</p>
+        <nav class="quick-strip" aria-label="${escapeHtml(t.common.marketplaceGuides)}">${topMpStripHtml}</nav>
       </header>
 
       ${renderAdSlot('topBanner', t)}

@@ -72,6 +72,11 @@ export function renderPaymentPage(lang, provider = null) {
       </section>`
     : '';
 
+  const topPayStripHtml = PAYMENT_PROVIDERS.map((p) => {
+    const isCurrent = provider && p.key === provider.key;
+    return `<a class="quick-link${isCurrent ? ' is-current' : ''}" href="${escapeHtml(getRoutePath(`payment:${p.key}`, lang))}"${isCurrent ? ' aria-current="page"' : ''}>${escapeHtml(p.name)}</a>`;
+  }).join('');
+
   const bodyHtml = `
     <div class="container">
       ${renderBreadcrumbs(breadcrumbs)}
@@ -82,6 +87,7 @@ export function renderPaymentPage(lang, provider = null) {
         </div>
         <h1>${escapeHtml(seo.h1)}</h1>
         <p class="page-head__sub">${escapeHtml(seo.subtitle)}</p>
+        <nav class="quick-strip" aria-label="${escapeHtml(t.common.paymentGuides)}">${topPayStripHtml}</nav>
       </header>
 
       ${renderAdSlot('topBanner', t)}
