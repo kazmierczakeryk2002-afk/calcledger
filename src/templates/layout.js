@@ -76,7 +76,9 @@ export function buildSoftwareAppJsonLd({ name, description, url, lang, featureLi
     description,
     url,
     inLanguage: lang,
+    dateModified: SITE_CONFIG.buildDate,
     applicationCategory: 'FinanceApplication',
+    applicationSubCategory: 'Financial & E-Commerce Calculator',
     operatingSystem: 'Any (Web Browser)',
     isAccessibleForFree: true,
     offers: {
@@ -122,6 +124,21 @@ export function buildWebSiteJsonLd(lang, description) {
       name: SITE_CONFIG.brandName,
       url: SITE_CONFIG.domain,
       email: SITE_CONFIG.contactEmail,
+      knowsAbout: [
+        'European Value-Added Tax (VAT / MwSt / TVA / BTW / IVA)',
+        'Marketplace Seller Fees (Etsy, Amazon FBA, eBay, Shopify, Upwork, Allegro)',
+        'Payment Gateway Fees (PayPal, Stripe)',
+        'ROAS, ACOS, and Break-Even Advertising',
+        'Profit Margin and Markup Pricing',
+        'B2B Freelance Hourly and Day Rates',
+        'Compound Interest and Investment ROI',
+      ],
+      contactPoint: {
+        '@type': 'ContactPoint',
+        contactType: 'customer support',
+        email: SITE_CONFIG.contactEmail,
+        availableLanguage: ['en', 'de', 'pl'],
+      },
     },
   };
 }
@@ -333,6 +350,7 @@ export function renderLayout({
   <meta name="theme-color" content="#0F5C48">
   ${canonical ? `<link rel="canonical" href="${canonical}">` : ''}
   ${hreflangTags}
+  <link rel="alternate" type="text/markdown" title="LLMs Index" href="${SITE_CONFIG.domain}/llms.txt">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="${escapeHtml(SITE_CONFIG.brandName)}">
   <meta property="og:title" content="${escapeHtml(title)}">

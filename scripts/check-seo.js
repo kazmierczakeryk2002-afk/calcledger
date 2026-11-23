@@ -68,11 +68,13 @@ function runAudit() {
     process.exit(1);
   }
 
-  // 1. Required technical files
+  // 1. Required technical SEO & GEO files
   const requiredFiles = [
     'sitemap.xml',
     'robots.txt',
     'ads.txt',
+    'llms.txt',
+    'llms-full.txt',
     '_headers',
     '404.html',
     'site.webmanifest',

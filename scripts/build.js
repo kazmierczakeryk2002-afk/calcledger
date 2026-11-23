@@ -88,10 +88,143 @@ ${entries.join('\n')}
 }
 
 function generateRobotsTxt() {
-  return `User-agent: *
+  return `# CalcLedger (${SITE_CONFIG.domain}) — Search Engine & AI Search Crawler Policy
+User-agent: *
+Allow: /
+
+# Explicitly welcome AI search & answer engine crawlers (GEO)
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-SearchBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+User-agent: Applebot-Extended
 Allow: /
 
 Sitemap: ${SITE_CONFIG.domain}/sitemap.xml
+`;
+}
+
+function generateLlmsTxt() {
+  const vatLines = VAT_COUNTRIES.map(
+    (c) =>
+      `- [${c.names.en} VAT (${c.standardRate}% ${c.localTaxName})](${getAbsoluteUrl(`vat:${c.key}`, 'en')}): Standard ${c.standardRate}%, reduced ${c.reducedRates.join('%, ')}% (${c.currency}). Also in [DE](${getAbsoluteUrl(`vat:${c.key}`, 'de')}) and [PL](${getAbsoluteUrl(`vat:${c.key}`, 'pl')}).`
+  ).join('\n');
+
+  const mpLines = MARKETPLACES.map(
+    (m) =>
+      `- [${m.name} Fee & Profit Calculator](${getAbsoluteUrl(`marketplace:${m.key}`, 'en')}): ${m.feeSummary.en} Also in [DE](${getAbsoluteUrl(`marketplace:${m.key}`, 'de')}) and [PL](${getAbsoluteUrl(`marketplace:${m.key}`, 'pl')}).`
+  ).join('\n');
+
+  const payLines = PAYMENT_PROVIDERS.map(
+    (p) =>
+      `- [${p.name} Fee Calculator (Net & Reverse)](${getAbsoluteUrl(`payment:${p.key}`, 'en')}): ${p.feeSummary.en} Also in [DE](${getAbsoluteUrl(`payment:${p.key}`, 'de')}) and [PL](${getAbsoluteUrl(`payment:${p.key}`, 'pl')}).`
+  ).join('\n');
+
+  return `# ${SITE_CONFIG.brandName}
+
+> CalcLedger (${SITE_CONFIG.domain}) is a free, privacy-first suite of 7 browser-local financial and e-commerce calculators available in English, German (Deutsch), and Polish (Polski), supporting EUR, USD, GBP, CHF, and PLN with shareable URL parameters and zero account or server tracking.
+
+## Core Calculators
+
+- [Compound Interest & ROI Calculator](${getAbsoluteUrl('compound', 'en')}): Portfolio growth projection with recurring monthly contributions, compounding frequencies, responsive SVG chart, and year-by-year table. ([DE](${getAbsoluteUrl('compound', 'de')}) · [PL](${getAbsoluteUrl('compound', 'pl')}))
+- [Profit Margin & Markup Calculator](${getAbsoluteUrl('margin', 'en')}): Cost, selling price, gross margin %, markup %, and clickable Margin-to-Markup reference table. ([DE](${getAbsoluteUrl('margin', 'de')}) · [PL](${getAbsoluteUrl('margin', 'pl')}))
+- [VAT / MwSt Calculator (Net ↔ Gross)](${getAbsoluteUrl('vat', 'en')}): Add or reverse-calculate VAT across 15 European countries and custom rates. ([DE](${getAbsoluteUrl('vat', 'de')}) · [PL](${getAbsoluteUrl('vat', 'pl')}))
+- [Marketplace Seller Profit & Fee Calculator](${getAbsoluteUrl('marketplace', 'en')}): Net profit, margin, ROI, ad spend (ACOS), VAT deduction, Break-Even Price, Break-Even ACOS, and visual revenue breakdown bar. ([DE](${getAbsoluteUrl('marketplace', 'de')}) · [PL](${getAbsoluteUrl('marketplace', 'pl')}))
+- [PayPal & Stripe Payment Fee Calculator](${getAbsoluteUrl('payment', 'en')}): Forward payout and reverse invoice fee calculation including international FX spreads. ([DE](${getAbsoluteUrl('payment', 'de')}) · [PL](${getAbsoluteUrl('payment', 'pl')}))
+- [ROAS ↔ ACOS & Break-Even Ads Calculator](${getAbsoluteUrl('roas', 'en')}): Convert ROAS to ACOS, find Break-Even ROAS from product margin, and model net profit after ad spend. ([DE](${getAbsoluteUrl('roas', 'de')}) · [PL](${getAbsoluteUrl('roas', 'pl')}))
+- [Freelance Hourly & Day Rate Calculator (B2B)](${getAbsoluteUrl('freelance', 'en')}): Sustainable B2B hourly and day rate from target annual net income, overhead, taxes, vacation weeks, and billable utilization. ([DE](${getAbsoluteUrl('freelance', 'de')}) · [PL](${getAbsoluteUrl('freelance', 'pl')}))
+
+## European VAT Calculators (15 Countries)
+
+${vatLines}
+
+## Marketplace Seller Fee Calculators (6 Platforms)
+
+${mpLines}
+
+## Payment Gateway Calculators
+
+${payLines}
+
+## Full Reference & Policies
+
+- [Full Machine-Readable Reference (Formulas & Tax Tables)](${SITE_CONFIG.domain}/llms-full.txt)
+- [XML Sitemap (105 Localized Pages)](${SITE_CONFIG.domain}/sitemap.xml)
+- [About CalcLedger](${getAbsoluteUrl('about', 'en')})
+- [Privacy Policy](${getAbsoluteUrl('privacy', 'en')})
+- [Terms & Disclaimer](${getAbsoluteUrl('terms', 'en')})
+- [Contact](${getAbsoluteUrl('contact', 'en')}): ${SITE_CONFIG.contactEmail}
+`;
+}
+
+function generateLlmsFullTxt() {
+  const vatTable = VAT_COUNTRIES.map(
+    (c) =>
+      `| ${c.names.en} (${c.code}) | ${c.standardRate}% | ${c.reducedRates.join('%, ')}% | ${c.currency} | ${c.localTaxName} | ${c.vatIdFormat} | ${getAbsoluteUrl(`vat:${c.key}`, 'en')} |`
+  ).join('\n');
+
+  const mpTable = MARKETPLACES.map(
+    (m) =>
+      `| ${m.name} | ${m.defaultCurrency} | ${m.presets.commissionPct}% | ${m.presets.paymentPct}% | ${m.presets.fixedFee} | ${m.feeSummary.en} | ${getAbsoluteUrl(`marketplace:${m.key}`, 'en')} |`
+  ).join('\n');
+
+  return `# CalcLedger — Complete Reference Data & Formulas (${SITE_CONFIG.domain})
+
+Updated: ${SITE_CONFIG.buildDate}
+Brand: ${SITE_CONFIG.brandName}
+Languages: English (EN), German (DE), Polish (PL)
+Currencies: EUR, USD, GBP, CHF, PLN
+Privacy: 100% client-side JavaScript execution in the browser; no financial inputs transmitted to servers.
+Contact: ${SITE_CONFIG.contactEmail}
+
+## Exact Mathematical Formulas Used by CalcLedger
+
+1. **VAT Net to Gross:** Gross = Net * (1 + VAT% / 100)
+2. **VAT Gross to Net (Reverse VAT):** Net = Gross / (1 + VAT% / 100); VAT = Gross - Net
+3. **Profit Margin %:** Margin% = ((Selling Price - Cost) / Selling Price) * 100
+4. **Markup %:** Markup% = ((Selling Price - Cost) / Cost) * 100
+5. **Margin to Markup Conversion:** Markup = Margin / (1 - Margin)
+6. **Reverse Payment Fee (PayPal / Stripe):** Gross Charge = (Desired Net + Fixed Fee) / (1 - (Fee% + FX%) / 100)
+7. **ROAS & ACOS Conversion:** ROAS = Ad Revenue / Ad Spend = 100 / ACOS%; ACOS% = (Ad Spend / Ad Revenue) * 100 = 100 / ROAS
+8. **Break-Even ROAS:** Break-Even ROAS = 100 / Gross Profit Margin Before Ads %
+9. **Marketplace Break-Even Selling Price:** R_be = (COGS + Seller Shipping + Fixed Fee) / (1 - VAT_share_of_gross - Commission% - Payment% - ACOS%)
+10. **Freelance B2B Hourly Rate:** Required Revenue = (Target Net Income / (1 - Tax%)) + Annual Overhead; Hourly Rate = Required Revenue / (Working Weeks * Hours/Week * Billable Utilization %)
+11. **Compound Interest (with monthly contributions):** Compounded monthly-equivalent effective growth from nominal rate r and frequency n per year over t years.
+
+## European VAT Rates Table (15 Jurisdictions)
+
+| Country | Standard Rate | Reduced / Zero Rates | Default Currency | Local Tax Name | VAT ID Format | Calculator URL |
+|---|---|---|---|---|---|---|
+${vatTable}
+
+## Marketplace Seller Fee Presets (6 Platforms)
+
+| Platform | Default Currency | Default Commission % | Payment % | Fixed Fee | Summary | Calculator URL |
+|---|---|---|---|---|---|---|
+${mpTable}
+
+## Language Roots
+
+- English (EN, x-default): ${getAbsoluteUrl('home', 'en')}
+- German (DE): ${getAbsoluteUrl('home', 'de')}
+- Polish (PL): ${getAbsoluteUrl('home', 'pl')}
 `;
 }
 
@@ -129,6 +262,14 @@ function generateCloudflareHeaders() {
 
 /ads.txt
   Content-Type: text/plain; charset=utf-8
+  Cache-Control: public, max-age=3600
+
+/llms.txt
+  Content-Type: text/markdown; charset=utf-8
+  Cache-Control: public, max-age=3600
+
+/llms-full.txt
+  Content-Type: text/markdown; charset=utf-8
   Cache-Control: public, max-age=3600
 `;
 }
@@ -220,10 +361,12 @@ function build() {
   // 404 Page
   fs.writeFileSync(path.join(DIST, '404.html'), renderNotFoundPage('en'), 'utf8');
 
-  // Technical SEO & Cloudflare Pages Files
+  // Technical SEO, GEO (AI Search) & Cloudflare Files
   fs.writeFileSync(path.join(DIST, 'sitemap.xml'), generateSitemapXml(), 'utf8');
   fs.writeFileSync(path.join(DIST, 'robots.txt'), generateRobotsTxt(), 'utf8');
   fs.writeFileSync(path.join(DIST, 'ads.txt'), generateAdsTxt(), 'utf8');
+  fs.writeFileSync(path.join(DIST, 'llms.txt'), generateLlmsTxt(), 'utf8');
+  fs.writeFileSync(path.join(DIST, 'llms-full.txt'), generateLlmsFullTxt(), 'utf8');
   fs.writeFileSync(path.join(DIST, '_headers'), generateCloudflareHeaders(), 'utf8');
   fs.writeFileSync(path.join(DIST, 'site.webmanifest'), generateWebManifest(), 'utf8');
 
