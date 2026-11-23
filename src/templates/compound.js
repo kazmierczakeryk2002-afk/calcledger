@@ -19,9 +19,9 @@ export function renderCompoundPage(lang) {
   const defaultCurrency = SITE_CONFIG.defaultCurrencyByLang[lang];
 
   const defaultsByLang = {
-    en: { principal: 10000, monthly: 500, rate: 8, years: 15 },
-    de: { principal: 10000, monthly: 400, rate: 7, years: 15 },
-    pl: { principal: 20000, monthly: 1500, rate: 8, years: 15 },
+    en: { principal: 10000, monthly: 500, rate: 8, years: 15, tax: 0, inflation: 2.5 },
+    de: { principal: 10000, monthly: 400, rate: 7, years: 15, tax: 26.375, inflation: 2.5 },
+    pl: { principal: 20000, monthly: 1500, rate: 8, years: 15, tax: 19, inflation: 2.5 },
   };
   const def = defaultsByLang[lang] || defaultsByLang.en;
 
@@ -48,24 +48,27 @@ export function renderCompoundPage(lang) {
         <div class="calc-inputs">
           ${renderCurrencyControl('cmp', defaultCurrency, t)}
 
-          <div class="field">
-            <label class="field__label" for="cmp-principal">${escapeHtml(t.compound.principalLabel)}</label>
-            <input class="input num" type="number" id="cmp-principal" inputmode="decimal" step="500" min="0" value="${def.principal}">
-          </div>
-
-          <div class="field">
-            <label class="field__label" for="cmp-monthly">${escapeHtml(t.compound.monthlyLabel)}</label>
-            <input class="input num" type="number" id="cmp-monthly" inputmode="decimal" step="50" min="0" value="${def.monthly}">
+          <div class="field-row">
+            <div class="field">
+              <label class="field__label" for="cmp-principal">${escapeHtml(t.compound.principalLabel)}</label>
+              <input class="input num" type="number" id="cmp-principal" inputmode="decimal" step="500" min="0" value="${def.principal}">
+            </div>
+            <div class="field">
+              <label class="field__label" for="cmp-monthly">${escapeHtml(t.compound.monthlyLabel)}</label>
+              <input class="input num" type="number" id="cmp-monthly" inputmode="decimal" step="50" min="0" value="${def.monthly}">
+            </div>
           </div>
 
           <div class="field-row">
             <div class="field">
               <label class="field__label" for="cmp-rate">${escapeHtml(t.compound.rateLabel)}</label>
               <input class="input num" type="number" id="cmp-rate" inputmode="decimal" step="0.25" min="0" max="100" value="${def.rate}">
+              <input class="range-input" type="range" id="cmp-rate-slider" min="0" max="25" step="0.25" value="${def.rate}" aria-label="${escapeHtml(t.compound.rateLabel)}">
             </div>
             <div class="field">
               <label class="field__label" for="cmp-years">${escapeHtml(t.compound.yearsLabel)}</label>
               <input class="input num" type="number" id="cmp-years" inputmode="numeric" step="1" min="1" max="50" value="${def.years}">
+              <input class="range-input" type="range" id="cmp-years-slider" min="1" max="50" step="1" value="${def.years}" aria-label="${escapeHtml(t.compound.yearsLabel)}">
             </div>
           </div>
 
@@ -78,15 +81,51 @@ export function renderCompoundPage(lang) {
               <option value="1">${escapeHtml(t.compound.freqAnnual)}</option>
             </select>
           </div>
+
+          <div class="field-row">
+            <div class="field">
+              <label class="field__label" for="cmp-tax">${escapeHtml(t.compound.taxLabel)}</label>
+              <input class="input num" type="number" id="cmp-tax" inputmode="decimal" step="0.1" min="0" max="60" value="${def.tax}">
+              <div class="pill-row">
+                <button type="button" class="pill-btn" data-cmp-tax="0">${escapeHtml(t.compound.taxChipNone)}</button>
+                <button type="button" class="pill-btn" data-cmp-tax="19">${escapeHtml(t.compound.taxChipPl)}</button>
+                <button type="button" class="pill-btn" data-cmp-tax="26.375">${escapeHtml(t.compound.taxChipDe)}</button>
+              </div>
+            </div>
+            <div class="field">
+              <label class="field__label" for="cmp-inflation">${escapeHtml(t.compound.inflationLabel)}</label>
+              <input class="input num" type="number" id="cmp-inflation" inputmode="decimal" step="0.1" min="0" max="30" value="${def.inflation}">
+              <div class="pill-row">
+                <button type="button" class="pill-btn" data-cmp-inf="0">0%</button>
+                <button type="button" class="pill-btn" data-cmp-inf="2">2%</button>
+                <button type="button" class="pill-btn" data-cmp-inf="2.5">2.5%</button>
+                <button type="button" class="pill-btn" data-cmp-inf="4">4%</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="calc-results" aria-live="polite">
-          <div class="result-hero">
-            <span class="result-hero__label">${escapeHtml(t.compound.outFutureValue)}</span>
-            <strong class="result-hero__value num" id="cmp-out-fv">—</strong>
+          <div class="result-hero-pair">
+            <div class="result-hero">
+              <span class="result-hero__label">${escapeHtml(t.compound.outFutureValue)}</span>
+              <strong class="result-hero__value num" id="cmp-out-fv">—</strong>
+            </div>
+            <div class="result-hero result-hero--alt">
+              <span class="result-hero__label">${escapeHtml(t.compound.outRealValue)}</span>
+              <strong class="result-hero__value num" id="cmp-out-real">—</strong>
+            </div>
           </div>
 
           <div class="kpi-grid">
+            <div class="kpi">
+              <span class="kpi__label">${escapeHtml(t.compound.outAfterTax)}</span>
+              <strong class="kpi__value num" id="cmp-out-after-tax">—</strong>
+            </div>
+            <div class="kpi">
+              <span class="kpi__label">${escapeHtml(t.compound.outTaxPaid)}</span>
+              <strong class="kpi__value num" id="cmp-out-tax">—</strong>
+            </div>
             <div class="kpi">
               <span class="kpi__label">${escapeHtml(t.compound.outTotalContrib)}</span>
               <strong class="kpi__value num" id="cmp-out-contrib">—</strong>
@@ -107,6 +146,7 @@ export function renderCompoundPage(lang) {
 
           <div class="result-actions">
             <button type="button" class="btn btn--primary" id="cmp-copy-result">${escapeHtml(t.common.copyResult)}</button>
+            <button type="button" class="btn btn--secondary" id="cmp-download-csv">${escapeHtml(t.compound.downloadCsv)}</button>
             <button type="button" class="btn btn--secondary" id="cmp-copy-link">${escapeHtml(t.common.copyLink)}</button>
             <button type="button" class="btn btn--ghost" id="cmp-reset">${escapeHtml(t.common.reset)}</button>
           </div>
@@ -142,6 +182,7 @@ export function renderCompoundPage(lang) {
                 <th>${escapeHtml(t.compound.colAdded)}</th>
                 <th>${escapeHtml(t.compound.colInterest)}</th>
                 <th>${escapeHtml(t.compound.colEnd)}</th>
+                <th>${escapeHtml(t.compound.colReal)}</th>
                 <th>${escapeHtml(t.compound.colRoi)}</th>
               </tr>
             </thead>
@@ -179,9 +220,10 @@ export function renderCompoundPage(lang) {
         url: getAbsoluteUrl(pageKey, lang),
         lang,
         featureList: [
-          'Compound interest and ROI projection with monthly contributions',
-          'Dynamic responsive SVG portfolio growth chart',
-          'Year-by-year amortization and growth schedule table',
+          'Compound interest and ROI projection with monthly contributions and interactive sliders',
+          'Capital gains tax modeling (0%, 19% Polish Belka, 26.375% German Abgeltungssteuer, custom)',
+          'Inflation-adjusted real purchasing power calculation',
+          'Dynamic responsive SVG portfolio growth chart and downloadable CSV schedule',
           'Multi-currency support (EUR, USD, GBP, CHF, PLN)',
         ],
       }),

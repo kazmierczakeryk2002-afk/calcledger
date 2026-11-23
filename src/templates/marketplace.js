@@ -41,8 +41,9 @@ export function renderMarketplacePage(lang, marketplace = null) {
   }
 
   const presetMap = {};
+  const presetOrder = orderedMarketplaces.map((m) => m.key);
   for (const m of orderedMarketplaces) {
-    presetMap[m.key] = { ...m.presets, currency: m.defaultCurrency };
+    presetMap[m.key] = { ...m.presets, name: m.name, currency: m.defaultCurrency };
   }
 
   const presetOptions = orderedMarketplaces
@@ -150,6 +151,26 @@ export function renderMarketplacePage(lang, marketplace = null) {
             </div>
           </div>
 
+          <div class="field-row">
+            <div class="field">
+              <label class="field__label" for="mp-returns">${escapeHtml(t.marketplace.returnsLabel)}</label>
+              <input class="input num" type="number" id="mp-returns" inputmode="decimal" step="0.5" min="0" max="60" value="0">
+            </div>
+            <div class="field">
+              <label class="field__label" for="mp-orders">${escapeHtml(t.marketplace.monthlyOrdersLabel)}</label>
+              <input class="input num" type="number" id="mp-orders" inputmode="numeric" step="10" min="1" value="50">
+            </div>
+          </div>
+
+          <div class="field">
+            <span class="field__label">${escapeHtml(t.marketplace.targetMarginLabel)}</span>
+            <div class="pill-row">
+              <button type="button" class="pill-btn" data-mp-target-margin="15">15%</button>
+              <button type="button" class="pill-btn is-active" data-mp-target-margin="25">25%</button>
+              <button type="button" class="pill-btn" data-mp-target-margin="35">35%</button>
+            </div>
+          </div>
+
           <div class="field field--checkbox">
             <label class="check-row">
               <input type="checkbox" id="mp-vat-enabled"${activePreset.vatRegistered ? ' checked' : ''}>
@@ -164,9 +185,15 @@ export function renderMarketplacePage(lang, marketplace = null) {
         </div>
 
         <div class="calc-results" aria-live="polite">
-          <div class="result-hero" id="mp-hero-box">
-            <span class="result-hero__label">${escapeHtml(t.marketplace.outNetProfit)}</span>
-            <strong class="result-hero__value num" id="mp-out-profit">—</strong>
+          <div class="result-hero-pair">
+            <div class="result-hero" id="mp-hero-box">
+              <span class="result-hero__label">${escapeHtml(t.marketplace.outNetProfit)}</span>
+              <strong class="result-hero__value num" id="mp-out-profit">—</strong>
+            </div>
+            <div class="result-hero result-hero--alt" id="mp-monthly-box">
+              <span class="result-hero__label">${escapeHtml(t.marketplace.outMonthlyProfit)}</span>
+              <strong class="result-hero__value num" id="mp-out-monthly">—</strong>
+            </div>
           </div>
 
           <div class="kpi-grid">
@@ -194,7 +221,11 @@ export function renderMarketplacePage(lang, marketplace = null) {
               <span class="kpi__label">${escapeHtml(t.marketplace.outBreakEvenPrice)}</span>
               <strong class="kpi__value num" id="mp-out-be-price">—</strong>
             </div>
-            <div class="kpi kpi--wide">
+            <div class="kpi">
+              <span class="kpi__label" id="mp-target-price-label">${escapeHtml(t.marketplace.outTargetPrice.replace('{pct}', '25'))}</span>
+              <strong class="kpi__value num" id="mp-out-target-price">—</strong>
+            </div>
+            <div class="kpi">
               <span class="kpi__label">${escapeHtml(t.marketplace.outBreakEvenAcos)}</span>
               <strong class="kpi__value num" id="mp-out-be-acos">—</strong>
             </div>
@@ -220,7 +251,29 @@ export function renderMarketplacePage(lang, marketplace = null) {
         </div>
       </section>
 
-      <script>window.CALCLEDGER_MP_PRESETS = ${safeJsonLd(presetMap)};</script>
+      <section class="content-section" aria-labelledby="mp-compare-title">
+        <div class="section-head">
+          <h2 id="mp-compare-title" class="section-heading">${escapeHtml(t.marketplace.compareHeading)}</h2>
+          <p class="section-sub">${escapeHtml(t.marketplace.compareSub)}</p>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>${escapeHtml(t.marketplace.colPlatform)}</th>
+                <th>${escapeHtml(t.marketplace.colFees)}</th>
+                <th>${escapeHtml(t.marketplace.colProfitOrder)}</th>
+                <th>${escapeHtml(t.marketplace.colMargin)}</th>
+                <th>${escapeHtml(t.marketplace.colBeAcos)}</th>
+                <th>${escapeHtml(t.marketplace.colMonthly)}</th>
+              </tr>
+            </thead>
+            <tbody id="mp-compare-body"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <script>window.CALCLEDGER_MP_PRESETS = ${safeJsonLd(presetMap)};window.CALCLEDGER_MP_ORDER = ${safeJsonLd(presetOrder)};</script>
 
       ${tipsSection}
 
@@ -257,10 +310,10 @@ export function renderMarketplacePage(lang, marketplace = null) {
         url: getAbsoluteUrl(pageKey, lang),
         lang,
         featureList: [
-          'Marketplace commission and payment fee modeling',
-          'ACOS advertising spend and break-even ACOS calculation',
-          'VAT deduction and break-even selling price',
-          'Visual revenue breakdown bar',
+          'Marketplace commission, payment fee, return rate, and monthly volume modeling',
+          'ACOS advertising spend, break-even ACOS, break-even price, and target margin price',
+          'Live side-by-side comparison across Allegro, Amazon FBA, Etsy, eBay, Shopify, and Upwork',
+          'VAT deduction and visual revenue breakdown bar',
         ],
       }),
       buildBreadcrumbJsonLd(breadcrumbs),

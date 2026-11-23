@@ -179,6 +179,7 @@
     const CL = window.CalcLedger;
     const I18N = CL.I18N;
     const PRESETS = window.CALCLEDGER_MP_PRESETS || {};
+    const ORDER = window.CALCLEDGER_MP_ORDER || Object.keys(PRESETS);
     const defaultCurrency = shell.getAttribute('data-default-currency') || 'EUR';
     const defaultPresetKey = shell.getAttribute('data-default-preset') || '';
 
@@ -191,6 +192,8 @@
     const elPayPct = document.getElementById('mp-pay-pct');
     const elFixedFee = document.getElementById('mp-fixed-fee');
     const elAcos = document.getElementById('mp-acos');
+    const elReturns = document.getElementById('mp-returns');
+    const elOrders = document.getElementById('mp-orders');
     const elVatEnabled = document.getElementById('mp-vat-enabled');
     const elVatRate = document.getElementById('mp-vat-rate');
     const elVatWrap = document.getElementById('mp-vat-rate-wrap');
@@ -205,19 +208,26 @@
       payPct: elPayPct.value,
       fixedFee: elFixedFee.value,
       acos: elAcos.value,
+      returns: elReturns.value,
+      orders: elOrders.value,
       vatEnabled: elVatEnabled.checked,
       vatRate: elVatRate.value,
     };
 
     const heroBox = document.getElementById('mp-hero-box');
+    const monthlyBox = document.getElementById('mp-monthly-box');
     const outProfit = document.getElementById('mp-out-profit');
+    const outMonthly = document.getElementById('mp-out-monthly');
     const outMargin = document.getElementById('mp-out-margin');
     const outRoi = document.getElementById('mp-out-roi');
     const outFees = document.getElementById('mp-out-fees');
     const outAds = document.getElementById('mp-out-ads');
     const outVat = document.getElementById('mp-out-vat');
     const outBePrice = document.getElementById('mp-out-be-price');
+    const outTargetLabel = document.getElementById('mp-target-price-label');
+    const outTargetPrice = document.getElementById('mp-out-target-price');
     const outBeAcos = document.getElementById('mp-out-be-acos');
+    const compareBody = document.getElementById('mp-compare-body');
 
     const segCogs = document.getElementById('mp-seg-cogs');
     const segFees = document.getElementById('mp-seg-fees');
@@ -226,8 +236,86 @@
     const segProfit = document.getElementById('mp-seg-profit');
     const elLegend = document.getElementById('mp-legend');
 
+    let targetMarginPct = 25;
     let lastSummary = '';
     const currency = bindCurrencySwitcher(shell, defaultCurrency, () => calculate(true));
+
+    function updateTargetMarginPills() {
+      shell.querySelectorAll('[data-mp-target-margin]').forEach((btn) => {
+        const val = CL.parseNum(btn.getAttribute('data-mp-target-margin'), 25);
+        btn.classList.toggle('is-active', Math.abs(val - targetMarginPct) < 0.01);
+      });
+      if (outTargetLabel) {
+        outTargetLabel.textContent = I18N.marketplace.outTargetPrice.replace('{pct}', String(targetMarginPct));
+      }
+    }
+
+    function evaluateMetrics({
+      price,
+      buyerShip,
+      cogs,
+      sellerShip,
+      commPct,
+      payPct,
+      fixedFee,
+      acosPct,
+      returnsPct,
+      monthlyOrders,
+      vatOn,
+      vatRate,
+      targetMargin,
+    }) {
+      const grossRevenue = price + buyerShip;
+      const vatFactor = vatOn && vatRate > 0 ? (vatRate / 100) / (1 + vatRate / 100) : 0;
+      const vatAmount = grossRevenue * vatFactor;
+      const pctFees = grossRevenue * ((commPct + payPct) / 100);
+      const totalFees = pctFees + fixedFee;
+      const adCost = grossRevenue * (acosPct / 100);
+      const directCost = cogs + sellerShip;
+
+      const r = Math.max(0, Math.min(0.6, returnsPct / 100));
+      const netProfitSingle = grossRevenue - vatAmount - totalFees - adCost - directCost;
+      const returnLoss = sellerShip + adCost + fixedFee;
+      const expectedNetProfit = (1 - r) * netProfitSingle - r * returnLoss;
+      const monthlyProfit = expectedNetProfit * monthlyOrders;
+
+      const marginPct = grossRevenue > 0 ? (expectedNetProfit / grossRevenue) * 100 : 0;
+      const roiBase = directCost > 0 ? directCost : cogs;
+      const roiPct = roiBase > 0 ? (expectedNetProfit / roiBase) * 100 : 0;
+
+      // Closed-form Break-Even Selling Price & Target Margin Price (generalized for return rate r)
+      const fixedNumerator = (1 - r) * cogs + sellerShip + fixedFee;
+      const beDenom = (1 - r) * (1 - vatFactor - (commPct + payPct) / 100) - acosPct / 100;
+      let bePrice = null;
+      if (beDenom > 0.001) {
+        bePrice = Math.max(0, fixedNumerator / beDenom - buyerShip);
+      }
+
+      const tmDenom = beDenom - targetMargin / 100;
+      let targetPrice = null;
+      if (tmDenom > 0.001) {
+        targetPrice = Math.max(0, fixedNumerator / tmDenom - buyerShip);
+      }
+
+      const profitBeforeAds = (1 - r) * (grossRevenue - vatAmount - totalFees - directCost) - r * (sellerShip + fixedFee);
+      const beAcos = grossRevenue > 0 ? (profitBeforeAds / grossRevenue) * 100 : 0;
+
+      return {
+        grossRevenue,
+        vatAmount,
+        totalFees,
+        adCost,
+        directCost,
+        expectedNetProfit,
+        monthlyProfit,
+        marginPct,
+        roiBase,
+        roiPct,
+        bePrice,
+        targetPrice,
+        beAcos,
+      };
+    }
 
     function applyPreset(key, sync) {
       const p = PRESETS[key];
@@ -246,6 +334,17 @@
       calculate(sync);
     }
 
+    function applyPresetFeesOnly(key) {
+      const p = PRESETS[key];
+      if (!p) return;
+      elPreset.value = key;
+      elComm.value = p.commissionPct;
+      elPayPct.value = p.paymentPct;
+      elFixedFee.value = p.fixedFee;
+      calculate(true);
+      shell.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+
     function getState() {
       return {
         cur: currency.get(),
@@ -258,9 +357,64 @@
         pay: elPayPct.value,
         fix: elFixedFee.value,
         acos: elAcos.value,
+        ret: elReturns.value,
+        ord: elOrders.value,
+        tm: String(targetMarginPct),
         vatOn: elVatEnabled.checked ? '1' : '0',
         vat: elVatRate.value,
       };
+    }
+
+    function renderComparisonTable(baseInputs, cur) {
+      if (!compareBody) return;
+      const rows = ORDER.filter((k) => PRESETS[k]).map((key) => {
+        const p = PRESETS[key];
+        const m = evaluateMetrics({
+          ...baseInputs,
+          commPct: p.commissionPct,
+          payPct: p.paymentPct,
+          fixedFee: p.fixedFee,
+        });
+        return { key, name: p.name || key, ...m };
+      });
+
+      let bestKey = '';
+      let bestProfit = 0;
+      rows.forEach((row) => {
+        if (row.expectedNetProfit > bestProfit) {
+          bestProfit = row.expectedNetProfit;
+          bestKey = row.key;
+        }
+      });
+
+      const activeKey = elPreset.value;
+      compareBody.innerHTML = rows
+        .map((row) => {
+          const isBest = row.key === bestKey && bestProfit > 0;
+          const isActive = row.key === activeKey;
+          const profitCls = row.expectedNetProfit < 0 ? ' is-negative' : '';
+          const badgeHtml = isBest ? `<span class="badge-best">${I18N.marketplace.bestBadge}</span>` : '';
+          return `<tr class="clickable-row${isActive ? ' is-selected' : ''}" data-mp-compare="${row.key}" tabindex="0">
+            <td><strong>${row.name}</strong>${badgeHtml}</td>
+            <td class="num">${CL.formatMoney(row.totalFees, cur)}</td>
+            <td class="num${profitCls}"><strong>${CL.formatMoney(row.expectedNetProfit, cur)}</strong></td>
+            <td class="num${profitCls}">${CL.formatPercent(row.marginPct, 1)}</td>
+            <td class="num">${CL.formatPercent(Math.max(0, row.beAcos), 1)}</td>
+            <td class="num${profitCls}"><strong>${CL.formatMoney(row.monthlyProfit, cur)}</strong></td>
+          </tr>`;
+        })
+        .join('');
+
+      compareBody.querySelectorAll('[data-mp-compare]').forEach((tr) => {
+        const activate = () => applyPresetFeesOnly(tr.getAttribute('data-mp-compare'));
+        tr.addEventListener('click', activate);
+        tr.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            activate();
+          }
+        });
+      });
     }
 
     function calculate(syncUrl) {
@@ -272,59 +426,59 @@
       const payPct = Math.max(0, Math.min(100, CL.parseNum(elPayPct.value, 0)));
       const fixedFee = Math.max(0, CL.parseNum(elFixedFee.value, 0));
       const acosPct = Math.max(0, Math.min(100, CL.parseNum(elAcos.value, 0)));
+      const returnsPct = Math.max(0, Math.min(60, CL.parseNum(elReturns.value, 0)));
+      const monthlyOrders = Math.max(1, Math.round(CL.parseNum(elOrders.value, 50)));
       const vatOn = elVatEnabled.checked;
       const vatRate = Math.max(0, Math.min(100, CL.parseNum(elVatRate.value, 0)));
 
       elVatWrap.hidden = !vatOn;
+      updateTargetMarginPills();
 
-      const grossRevenue = price + buyerShip;
-      const vatFactor = vatOn && vatRate > 0 ? (vatRate / 100) / (1 + vatRate / 100) : 0;
-      const vatAmount = grossRevenue * vatFactor;
-      const pctFees = grossRevenue * ((commPct + payPct) / 100);
-      const totalFees = pctFees + fixedFee;
-      const adCost = grossRevenue * (acosPct / 100);
-      const directCost = cogs + sellerShip;
-
-      const netProfit = grossRevenue - vatAmount - totalFees - adCost - directCost;
-      const marginPct = grossRevenue > 0 ? (netProfit / grossRevenue) * 100 : 0;
-      const roiBase = directCost > 0 ? directCost : cogs;
-      const roiPct = roiBase > 0 ? (netProfit / roiBase) * 100 : 0;
-
-      // Exact closed-form Break-Even Selling Price
-      const variableKeepRatio = 1 - vatFactor - (commPct + payPct + acosPct) / 100;
-      let bePriceText = '—';
-      if (variableKeepRatio > 0.001) {
-        const beGrossRev = (directCost + fixedFee) / variableKeepRatio;
-        const bePrice = Math.max(0, beGrossRev - buyerShip);
-        bePriceText = CL.formatMoney(bePrice, currency.get());
-      }
-
-      // Break-Even ACOS = profit margin before ads
-      const profitBeforeAds = grossRevenue - vatAmount - totalFees - directCost;
-      const beAcos = grossRevenue > 0 ? (profitBeforeAds / grossRevenue) * 100 : 0;
-
+      const baseInputs = {
+        price,
+        buyerShip,
+        cogs,
+        sellerShip,
+        commPct,
+        payPct,
+        fixedFee,
+        acosPct,
+        returnsPct,
+        monthlyOrders,
+        vatOn,
+        vatRate,
+        targetMargin: targetMarginPct,
+      };
+      const res = evaluateMetrics(baseInputs);
       const cur = currency.get();
-      heroBox.classList.toggle('is-loss', netProfit < 0);
-      outProfit.textContent = CL.formatMoney(netProfit, cur);
-      outMargin.textContent = CL.formatPercent(marginPct, 2);
-      outRoi.textContent = roiBase > 0 ? CL.formatPercent(roiPct, 1) : '—';
-      outFees.textContent = CL.formatMoney(totalFees, cur);
-      outAds.textContent = CL.formatMoney(adCost, cur);
-      outVat.textContent = CL.formatMoney(vatAmount, cur);
+
+      const bePriceText = res.bePrice !== null ? CL.formatMoney(res.bePrice, cur) : '—';
+      const targetPriceText = res.targetPrice !== null ? CL.formatMoney(res.targetPrice, cur) : '—';
+
+      heroBox.classList.toggle('is-loss', res.expectedNetProfit < 0);
+      if (monthlyBox) monthlyBox.classList.toggle('is-loss', res.monthlyProfit < 0);
+      outProfit.textContent = CL.formatMoney(res.expectedNetProfit, cur);
+      if (outMonthly) outMonthly.textContent = CL.formatMoney(res.monthlyProfit, cur);
+      outMargin.textContent = CL.formatPercent(res.marginPct, 2);
+      outRoi.textContent = res.roiBase > 0 ? CL.formatPercent(res.roiPct, 1) : '—';
+      outFees.textContent = CL.formatMoney(res.totalFees, cur);
+      outAds.textContent = CL.formatMoney(res.adCost, cur);
+      outVat.textContent = CL.formatMoney(res.vatAmount, cur);
       outBePrice.textContent = bePriceText;
-      outBeAcos.textContent = CL.formatPercent(Math.max(0, beAcos), 2);
+      if (outTargetPrice) outTargetPrice.textContent = targetPriceText;
+      outBeAcos.textContent = CL.formatPercent(Math.max(0, res.beAcos), 2);
 
       // Update proportional breakdown bar
       const totalBarDenom = Math.max(
-        grossRevenue,
-        directCost + totalFees + adCost + vatAmount + Math.max(0, netProfit),
+        res.grossRevenue,
+        res.directCost + res.totalFees + res.adCost + res.vatAmount + Math.max(0, res.expectedNetProfit),
         0.01
       );
-      const wCogs = (directCost / totalBarDenom) * 100;
-      const wFees = (totalFees / totalBarDenom) * 100;
-      const wAds = (adCost / totalBarDenom) * 100;
-      const wVat = (vatAmount / totalBarDenom) * 100;
-      const wProfit = (Math.max(0, netProfit) / totalBarDenom) * 100;
+      const wCogs = (res.directCost / totalBarDenom) * 100;
+      const wFees = (res.totalFees / totalBarDenom) * 100;
+      const wAds = (res.adCost / totalBarDenom) * 100;
+      const wVat = (res.vatAmount / totalBarDenom) * 100;
+      const wProfit = (Math.max(0, res.expectedNetProfit) / totalBarDenom) * 100;
 
       segCogs.style.width = `${wCogs.toFixed(2)}%`;
       segFees.style.width = `${wFees.toFixed(2)}%`;
@@ -333,17 +487,17 @@
       segProfit.style.width = `${wProfit.toFixed(2)}%`;
 
       const legendParts = [
-        { cls: 'seg-navy', label: I18N.marketplace.segCogs, pct: grossRevenue > 0 ? (directCost / grossRevenue) * 100 : 0 },
-        { cls: 'seg-amber', label: I18N.marketplace.segFees, pct: grossRevenue > 0 ? (totalFees / grossRevenue) * 100 : 0 },
-        { cls: 'seg-terra', label: I18N.marketplace.segAds, pct: grossRevenue > 0 ? (adCost / grossRevenue) * 100 : 0 },
+        { cls: 'seg-navy', label: I18N.marketplace.segCogs, pct: res.grossRevenue > 0 ? (res.directCost / res.grossRevenue) * 100 : 0 },
+        { cls: 'seg-amber', label: I18N.marketplace.segFees, pct: res.grossRevenue > 0 ? (res.totalFees / res.grossRevenue) * 100 : 0 },
+        { cls: 'seg-terra', label: I18N.marketplace.segAds, pct: res.grossRevenue > 0 ? (res.adCost / res.grossRevenue) * 100 : 0 },
       ];
       if (vatOn) {
-        legendParts.push({ cls: 'seg-slate', label: I18N.marketplace.segVat, pct: grossRevenue > 0 ? (vatAmount / grossRevenue) * 100 : 0 });
+        legendParts.push({ cls: 'seg-slate', label: I18N.marketplace.segVat, pct: res.grossRevenue > 0 ? (res.vatAmount / res.grossRevenue) * 100 : 0 });
       }
       legendParts.push({
-        cls: netProfit >= 0 ? 'seg-emerald' : 'seg-terra',
-        label: netProfit >= 0 ? I18N.marketplace.segProfit : I18N.marketplace.segLoss,
-        pct: marginPct,
+        cls: res.expectedNetProfit >= 0 ? 'seg-emerald' : 'seg-terra',
+        label: res.expectedNetProfit >= 0 ? I18N.marketplace.segProfit : I18N.marketplace.segLoss,
+        pct: res.marginPct,
       });
 
       elLegend.innerHTML = legendParts
@@ -353,11 +507,14 @@
         )
         .join('');
 
+      renderComparisonTable(baseInputs, cur);
+
       lastSummary = [
-        `${I18N.marketplace.outNetProfit}: ${CL.formatMoney(netProfit, cur)} (${CL.formatPercent(marginPct, 2)})`,
-        `${I18N.marketplace.outTotalFees}: ${CL.formatMoney(totalFees, cur)}`,
+        `${I18N.marketplace.outNetProfit}: ${CL.formatMoney(res.expectedNetProfit, cur)} (${CL.formatPercent(res.marginPct, 2)})`,
+        `${I18N.marketplace.outMonthlyProfit} (${monthlyOrders}): ${CL.formatMoney(res.monthlyProfit, cur)}`,
+        `${I18N.marketplace.outTotalFees}: ${CL.formatMoney(res.totalFees, cur)}`,
         `${I18N.marketplace.outBreakEvenPrice}: ${bePriceText}`,
-        `${I18N.marketplace.outBreakEvenAcos}: ${CL.formatPercent(Math.max(0, beAcos), 2)}`,
+        `${I18N.marketplace.outBreakEvenAcos}: ${CL.formatPercent(Math.max(0, res.beAcos), 2)}`,
       ].join(' | ');
 
       if (syncUrl) CL.syncUrlState(getState());
@@ -377,6 +534,9 @@
     if (params.has('pay')) elPayPct.value = params.get('pay');
     if (params.has('fix')) elFixedFee.value = params.get('fix');
     if (params.has('acos')) elAcos.value = params.get('acos');
+    if (params.has('ret')) elReturns.value = params.get('ret');
+    if (params.has('ord')) elOrders.value = params.get('ord');
+    if (params.has('tm')) targetMarginPct = Math.max(1, Math.min(80, CL.parseNum(params.get('tm'), 25)));
     if (params.has('vatOn')) elVatEnabled.checked = params.get('vatOn') === '1';
     if (params.has('vat')) elVatRate.value = params.get('vat');
 
@@ -386,7 +546,14 @@
       if (elPreset.value !== 'custom') applyPreset(elPreset.value, true);
     });
 
-    [elPrice, elBuyerShip, elCogs, elSellerShip, elComm, elPayPct, elFixedFee, elAcos, elVatRate].forEach((input) => {
+    shell.querySelectorAll('[data-mp-target-margin]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        targetMarginPct = CL.parseNum(btn.getAttribute('data-mp-target-margin'), 25);
+        calculate(true);
+      });
+    });
+
+    [elPrice, elBuyerShip, elCogs, elSellerShip, elComm, elPayPct, elFixedFee, elAcos, elReturns, elOrders, elVatRate].forEach((input) => {
       input.addEventListener('input', () => calculate(true));
     });
     elVatEnabled.addEventListener('change', () => calculate(true));
@@ -398,6 +565,9 @@
       CL.copyText(CL.buildShareUrl(getState()), I18N.copiedLink);
     });
     document.getElementById('mp-reset').addEventListener('click', () => {
+      elReturns.value = initialSnapshot.returns;
+      elOrders.value = initialSnapshot.orders;
+      targetMarginPct = 25;
       if (defaultPresetKey && PRESETS[defaultPresetKey]) {
         elPreset.value = defaultPresetKey;
         applyPreset(defaultPresetKey, true);
@@ -716,8 +886,12 @@
     const elPrincipal = document.getElementById('cmp-principal');
     const elMonthly = document.getElementById('cmp-monthly');
     const elRate = document.getElementById('cmp-rate');
+    const elRateSlider = document.getElementById('cmp-rate-slider');
     const elYears = document.getElementById('cmp-years');
+    const elYearsSlider = document.getElementById('cmp-years-slider');
     const elFreq = document.getElementById('cmp-freq');
+    const elTax = document.getElementById('cmp-tax');
+    const elInflation = document.getElementById('cmp-inflation');
 
     const defaults = {
       principal: elPrincipal.value,
@@ -725,9 +899,14 @@
       rate: elRate.value,
       years: elYears.value,
       freq: elFreq.value,
+      tax: elTax.value,
+      inflation: elInflation.value,
     };
 
     const outFv = document.getElementById('cmp-out-fv');
+    const outReal = document.getElementById('cmp-out-real');
+    const outAfterTax = document.getElementById('cmp-out-after-tax');
+    const outTax = document.getElementById('cmp-out-tax');
     const outContrib = document.getElementById('cmp-out-contrib');
     const outInterest = document.getElementById('cmp-out-interest');
     const outRoi = document.getElementById('cmp-out-roi');
@@ -736,7 +915,31 @@
     const tableBody = document.getElementById('cmp-table-body');
 
     let lastSummary = '';
+    let lastRows = [];
+    let lastCur = defaultCurrency;
     const currency = bindCurrencySwitcher(shell, defaultCurrency, () => calculate(true));
+
+    function syncSlidersFromInputs() {
+      if (elRateSlider) {
+        const r = Math.max(0, Math.min(25, CL.parseNum(elRate.value, 0)));
+        elRateSlider.value = String(r);
+      }
+      if (elYearsSlider) {
+        const y = Math.max(1, Math.min(50, Math.round(CL.parseNum(elYears.value, 15))));
+        elYearsSlider.value = String(y);
+      }
+    }
+
+    function updateTaxAndInflationPills(taxVal, infVal) {
+      shell.querySelectorAll('[data-cmp-tax]').forEach((btn) => {
+        const v = CL.parseNum(btn.getAttribute('data-cmp-tax'), -1);
+        btn.classList.toggle('is-active', Math.abs(v - taxVal) < 0.01);
+      });
+      shell.querySelectorAll('[data-cmp-inf]').forEach((btn) => {
+        const v = CL.parseNum(btn.getAttribute('data-cmp-inf'), -1);
+        btn.classList.toggle('is-active', Math.abs(v - infVal) < 0.01);
+      });
+    }
 
     function getState() {
       return {
@@ -746,6 +949,8 @@
         r: elRate.value,
         y: elYears.value,
         f: elFreq.value,
+        tax: elTax.value,
+        inf: elInflation.value,
       };
     }
 
@@ -791,7 +996,7 @@
         const yContrib = yPrincipal - hContrib;
         const yInterest = yContrib - hInterest;
 
-        const tip = `${I18N.compound.colYear} ${row.year}: ${CL.formatMoney(row.endBalance, cur)} (${I18N.compound.legendInterest}: ${CL.formatMoney(row.cumInterest, cur)})`;
+        const tip = `${I18N.compound.colYear} ${row.year}: ${CL.formatMoney(row.endBalance, cur)} (${I18N.compound.colReal}: ${CL.formatMoney(row.realEnd, cur)})`;
 
         parts.push(`<g>`);
         parts.push(`<title>${tip}</title>`);
@@ -816,12 +1021,58 @@
       svgChart.innerHTML = parts.join('');
     }
 
+    function exportCsv() {
+      if (!lastRows.length) return;
+      const esc = (v) => `"${String(v).replace(/"/g, '""')}"`;
+      const headers = [
+        I18N.compound.colYear,
+        `${I18N.compound.colStart} (${lastCur})`,
+        `${I18N.compound.colAdded} (${lastCur})`,
+        `${I18N.compound.colInterest} (${lastCur})`,
+        `${I18N.compound.colEnd} (${lastCur})`,
+        `${I18N.compound.colReal} (${lastCur})`,
+        `${I18N.compound.colRoi} (%)`,
+      ];
+      const lines = [headers.map(esc).join(',')];
+      lastRows.forEach((r) => {
+        lines.push(
+          [
+            r.year,
+            r.startBalance.toFixed(2),
+            r.yearAdded.toFixed(2),
+            r.yearInterest.toFixed(2),
+            r.endBalance.toFixed(2),
+            r.realEnd.toFixed(2),
+            r.roi.toFixed(2),
+          ]
+            .map(esc)
+            .join(',')
+        );
+      });
+      const csvContent = `\uFEFF${lines.join('\r\n')}\r\n`;
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `calcledger-compound-${lastCur.toLowerCase()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      CL.showToast(I18N.compound.downloadedCsv || 'CSV downloaded');
+    }
+
     function calculate(syncUrl) {
       const principal = Math.max(0, CL.parseNum(elPrincipal.value, 0));
       const monthly = Math.max(0, CL.parseNum(elMonthly.value, 0));
       const annualRate = Math.max(0, Math.min(100, CL.parseNum(elRate.value, 0))) / 100;
       const years = Math.max(1, Math.min(50, Math.round(CL.parseNum(elYears.value, 10))));
       const freq = Math.max(1, parseInt(elFreq.value, 10) || 12);
+      const taxPct = Math.max(0, Math.min(60, CL.parseNum(elTax.value, 0)));
+      const infPct = Math.max(0, Math.min(30, CL.parseNum(elInflation.value, 0)));
+
+      syncSlidersFromInputs();
+      updateTaxAndInflationPills(taxPct, infPct);
 
       // Equivalent effective monthly growth factor aligned to compounding frequency `freq`
       const effectiveAnnual = Math.pow(1 + annualRate / freq, freq) - 1;
@@ -848,6 +1099,8 @@
         cumInterest += yearInterest;
         const totalIn = principal + cumAdded;
         const roi = totalIn > 0 ? (cumInterest / totalIn) * 100 : 0;
+        const afterTaxEnd = balance - Math.max(0, cumInterest) * (taxPct / 100);
+        const realEnd = afterTaxEnd / Math.pow(1 + infPct / 100, y);
 
         rows.push({
           year: y,
@@ -855,6 +1108,7 @@
           yearAdded,
           yearInterest,
           endBalance: balance,
+          realEnd,
           cumAdded,
           cumInterest,
           roi,
@@ -862,11 +1116,20 @@
       }
 
       const totalContrib = principal + cumAdded;
+      const taxPaid = Math.max(0, cumInterest) * (taxPct / 100);
+      const afterTaxFv = balance - taxPaid;
+      const realFv = afterTaxFv / Math.pow(1 + infPct / 100, years);
       const totalRoi = totalContrib > 0 ? (cumInterest / totalContrib) * 100 : 0;
       const multiple = totalContrib > 0 ? balance / totalContrib : 0;
       const cur = currency.get();
 
+      lastRows = rows;
+      lastCur = cur;
+
       outFv.textContent = CL.formatMoney(balance, cur);
+      if (outReal) outReal.textContent = CL.formatMoney(realFv, cur);
+      if (outAfterTax) outAfterTax.textContent = CL.formatMoney(afterTaxFv, cur);
+      if (outTax) outTax.textContent = CL.formatMoney(taxPaid, cur);
       outContrib.textContent = CL.formatMoney(totalContrib, cur);
       outInterest.textContent = CL.formatMoney(cumInterest, cur);
       outRoi.textContent = CL.formatPercent(totalRoi, 1);
@@ -882,6 +1145,7 @@
             <td class="num">${CL.formatMoney(r.yearAdded, cur)}</td>
             <td class="num">${CL.formatMoney(r.yearInterest, cur)}</td>
             <td class="num"><strong>${CL.formatMoney(r.endBalance, cur)}</strong></td>
+            <td class="num">${CL.formatMoney(r.realEnd, cur)}</td>
             <td class="num">${CL.formatPercent(r.roi, 1)}</td>
           </tr>`
         )
@@ -889,8 +1153,9 @@
 
       lastSummary = [
         `${I18N.compound.outFutureValue} (${years}y): ${CL.formatMoney(balance, cur)}`,
+        `${I18N.compound.outAfterTax}: ${CL.formatMoney(afterTaxFv, cur)}`,
+        `${I18N.compound.outRealValue}: ${CL.formatMoney(realFv, cur)}`,
         `${I18N.compound.outTotalContrib}: ${CL.formatMoney(totalContrib, cur)}`,
-        `${I18N.compound.outTotalInterest}: ${CL.formatMoney(cumInterest, cur)}`,
         `${I18N.compound.outTotalRoi}: ${CL.formatPercent(totalRoi, 1)}`,
       ].join(' | ');
 
@@ -904,17 +1169,50 @@
     if (params.has('r')) elRate.value = params.get('r');
     if (params.has('y')) elYears.value = params.get('y');
     if (params.has('f')) elFreq.value = params.get('f');
+    if (params.has('tax')) elTax.value = params.get('tax');
+    if (params.has('inf')) elInflation.value = params.get('inf');
 
     calculate(false);
 
-    [elPrincipal, elMonthly, elRate, elYears].forEach((input) => {
+    [elPrincipal, elMonthly, elRate, elYears, elTax, elInflation].forEach((input) => {
       input.addEventListener('input', () => calculate(true));
     });
     elFreq.addEventListener('change', () => calculate(true));
 
+    if (elRateSlider) {
+      elRateSlider.addEventListener('input', () => {
+        elRate.value = elRateSlider.value;
+        calculate(true);
+      });
+    }
+    if (elYearsSlider) {
+      elYearsSlider.addEventListener('input', () => {
+        elYears.value = elYearsSlider.value;
+        calculate(true);
+      });
+    }
+
+    shell.querySelectorAll('[data-cmp-tax]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        elTax.value = btn.getAttribute('data-cmp-tax');
+        calculate(true);
+      });
+    });
+
+    shell.querySelectorAll('[data-cmp-inf]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        elInflation.value = btn.getAttribute('data-cmp-inf');
+        calculate(true);
+      });
+    });
+
     document.getElementById('cmp-copy-result').addEventListener('click', () => {
       CL.copyText(lastSummary, I18N.copiedResult);
     });
+    const btnCsv = document.getElementById('cmp-download-csv');
+    if (btnCsv) {
+      btnCsv.addEventListener('click', exportCsv);
+    }
     document.getElementById('cmp-copy-link').addEventListener('click', () => {
       CL.copyText(CL.buildShareUrl(getState()), I18N.copiedLink);
     });
@@ -925,6 +1223,8 @@
       elRate.value = defaults.rate;
       elYears.value = defaults.years;
       elFreq.value = defaults.freq;
+      elTax.value = defaults.tax;
+      elInflation.value = defaults.inflation;
       calculate(true);
     });
   }
