@@ -3,6 +3,7 @@ import { getI18n, escapeHtml } from '../data/i18n.js';
 import { VAT_COUNTRIES } from '../data/vat-countries.js';
 import { MARKETPLACES } from '../data/marketplaces.js';
 import { PAYMENT_PROVIDERS } from '../data/payment-providers.js';
+import { COMPARISONS } from '../data/comparisons.js';
 import { getMarketPriority, sortByKeyOrder } from '../data/market-priority.js';
 import {
   renderLayout,
@@ -76,6 +77,11 @@ export function renderHomePage(lang) {
       )
       .join('');
 
+  const compareLinksHtml = COMPARISONS.map(
+    (c) =>
+      `<a class="quick-link" href="${escapeHtml(getRoutePath(`compare:${c.key}`, lang))}">${escapeHtml(c.sideA.name)} vs ${escapeHtml(c.sideB.name)} &rarr;</a>`
+  ).join('');
+
   const whyHtml = t.home.whyItems
     .map(
       (item, idx) => `<article class="feature-item">
@@ -125,6 +131,7 @@ export function renderHomePage(lang) {
           <p class="section-sub">${escapeHtml(t.home.mpGridSub)}</p>
         </div>
         <div class="mp-grid">${mpLinksHtml}</div>
+        <nav class="quick-strip" aria-label="${escapeHtml(t.compare.sectionHeading)}">${compareLinksHtml}</nav>
       </section>
 
       <section class="content-section" aria-labelledby="why-title">

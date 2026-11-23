@@ -6,6 +6,7 @@ import {
   renderAdSlot,
   renderCurrencyControl,
   renderBreadcrumbs,
+  renderHint,
   renderFaqSection,
   renderRelatedCalculators,
   buildBreadcrumbJsonLd,
@@ -65,7 +66,7 @@ export function renderRoasPage(lang) {
           </div>
 
           <div class="field">
-            <label class="field__label" for="roas-margin">${escapeHtml(t.roas.marginBeforeAdsLabel)}</label>
+            <label class="field__label" for="roas-margin">${escapeHtml(t.roas.marginBeforeAdsLabel)}${renderHint(t.hints.preAdMargin)}</label>
             <input class="input num" type="number" id="roas-margin" inputmode="decimal" step="1" min="1" max="100" value="40">
           </div>
         </div>

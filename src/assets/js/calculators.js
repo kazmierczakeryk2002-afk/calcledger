@@ -885,6 +885,9 @@
 
     const elPrincipal = document.getElementById('cmp-principal');
     const elMonthly = document.getElementById('cmp-monthly');
+    const elMonthlyWrap = document.getElementById('cmp-monthly-wrap');
+    const elGoal = document.getElementById('cmp-goal');
+    const elGoalWrap = document.getElementById('cmp-goal-wrap');
     const elRate = document.getElementById('cmp-rate');
     const elRateSlider = document.getElementById('cmp-rate-slider');
     const elYears = document.getElementById('cmp-years');
@@ -896,6 +899,7 @@
     const defaults = {
       principal: elPrincipal.value,
       monthly: elMonthly.value,
+      goal: elGoal ? elGoal.value : '500000',
       rate: elRate.value,
       years: elYears.value,
       freq: elFreq.value,
@@ -903,6 +907,7 @@
       inflation: elInflation.value,
     };
 
+    const elPrimaryLabel = document.getElementById('cmp-primary-label');
     const outFv = document.getElementById('cmp-out-fv');
     const outReal = document.getElementById('cmp-out-real');
     const outAfterTax = document.getElementById('cmp-out-after-tax');
@@ -914,10 +919,26 @@
     const svgChart = document.getElementById('cmp-svg-chart');
     const tableBody = document.getElementById('cmp-table-body');
 
+    let mode = 'growth'; // 'growth' | 'goal'
     let lastSummary = '';
     let lastRows = [];
     let lastCur = defaultCurrency;
     const currency = bindCurrencySwitcher(shell, defaultCurrency, () => calculate(true));
+
+    function setMode(nextMode, sync) {
+      mode = nextMode === 'goal' ? 'goal' : 'growth';
+      shell.querySelectorAll('[data-cmp-mode]').forEach((btn) => {
+        const active = btn.getAttribute('data-cmp-mode') === mode;
+        btn.classList.toggle('is-active', active);
+        btn.setAttribute('aria-pressed', String(active));
+      });
+      if (elMonthlyWrap) elMonthlyWrap.hidden = mode === 'goal';
+      if (elGoalWrap) elGoalWrap.hidden = mode !== 'goal';
+      if (elPrimaryLabel) {
+        elPrimaryLabel.textContent = mode === 'goal' ? I18N.compound.outRequiredMonthly : I18N.compound.outFutureValue;
+      }
+      calculate(sync);
+    }
 
     function syncSlidersFromInputs() {
       if (elRateSlider) {
@@ -930,7 +951,7 @@
       }
     }
 
-    function updateTaxAndInflationPills(taxVal, infVal) {
+    function updatePills(taxVal, infVal, goalVal) {
       shell.querySelectorAll('[data-cmp-tax]').forEach((btn) => {
         const v = CL.parseNum(btn.getAttribute('data-cmp-tax'), -1);
         btn.classList.toggle('is-active', Math.abs(v - taxVal) < 0.01);
@@ -939,13 +960,19 @@
         const v = CL.parseNum(btn.getAttribute('data-cmp-inf'), -1);
         btn.classList.toggle('is-active', Math.abs(v - infVal) < 0.01);
       });
+      shell.querySelectorAll('[data-cmp-goal]').forEach((btn) => {
+        const v = CL.parseNum(btn.getAttribute('data-cmp-goal'), -1);
+        btn.classList.toggle('is-active', Math.abs(v - goalVal) < 1);
+      });
     }
 
     function getState() {
       return {
         cur: currency.get(),
+        mode,
         p: elPrincipal.value,
         m: elMonthly.value,
+        goal: elGoal ? elGoal.value : '',
         r: elRate.value,
         y: elYears.value,
         f: elFreq.value,
@@ -968,7 +995,6 @@
       const yTicks = 4;
       const parts = [];
 
-      // Horizontal grid lines + Y-axis labels
       for (let i = 0; i <= yTicks; i++) {
         const ratio = i / yTicks;
         const y = padT + plotH - ratio * plotH;
@@ -1064,7 +1090,7 @@
 
     function calculate(syncUrl) {
       const principal = Math.max(0, CL.parseNum(elPrincipal.value, 0));
-      const monthly = Math.max(0, CL.parseNum(elMonthly.value, 0));
+      const targetGoal = elGoal ? Math.max(0, CL.parseNum(elGoal.value, 0)) : 0;
       const annualRate = Math.max(0, Math.min(100, CL.parseNum(elRate.value, 0))) / 100;
       const years = Math.max(1, Math.min(50, Math.round(CL.parseNum(elYears.value, 10))));
       const freq = Math.max(1, parseInt(elFreq.value, 10) || 12);
@@ -1072,11 +1098,23 @@
       const infPct = Math.max(0, Math.min(30, CL.parseNum(elInflation.value, 0)));
 
       syncSlidersFromInputs();
-      updateTaxAndInflationPills(taxPct, infPct);
+      updatePills(taxPct, infPct, targetGoal);
 
-      // Equivalent effective monthly growth factor aligned to compounding frequency `freq`
       const effectiveAnnual = Math.pow(1 + annualRate / freq, freq) - 1;
       const monthlyGrowth = Math.pow(1 + effectiveAnnual, 1 / 12) - 1;
+      const totalMonths = years * 12;
+
+      let monthly = Math.max(0, CL.parseNum(elMonthly.value, 0));
+      if (mode === 'goal') {
+        const growthFactor = Math.pow(1 + monthlyGrowth, totalMonths);
+        const principalEnd = principal * growthFactor;
+        const shortfall = Math.max(0, targetGoal - principalEnd);
+        if (monthlyGrowth > 1e-9) {
+          monthly = (shortfall * monthlyGrowth) / (growthFactor - 1);
+        } else {
+          monthly = shortfall / totalMonths;
+        }
+      }
 
       let balance = principal;
       let cumAdded = 0;
@@ -1126,7 +1164,7 @@
       lastRows = rows;
       lastCur = cur;
 
-      outFv.textContent = CL.formatMoney(balance, cur);
+      outFv.textContent = mode === 'goal' ? CL.formatMoney(monthly, cur) : CL.formatMoney(balance, cur);
       if (outReal) outReal.textContent = CL.formatMoney(realFv, cur);
       if (outAfterTax) outAfterTax.textContent = CL.formatMoney(afterTaxFv, cur);
       if (outTax) outTax.textContent = CL.formatMoney(taxPaid, cur);
@@ -1151,13 +1189,20 @@
         )
         .join('');
 
-      lastSummary = [
-        `${I18N.compound.outFutureValue} (${years}y): ${CL.formatMoney(balance, cur)}`,
-        `${I18N.compound.outAfterTax}: ${CL.formatMoney(afterTaxFv, cur)}`,
-        `${I18N.compound.outRealValue}: ${CL.formatMoney(realFv, cur)}`,
-        `${I18N.compound.outTotalContrib}: ${CL.formatMoney(totalContrib, cur)}`,
-        `${I18N.compound.outTotalRoi}: ${CL.formatPercent(totalRoi, 1)}`,
-      ].join(' | ');
+      lastSummary =
+        mode === 'goal'
+          ? [
+              `${I18N.compound.outRequiredMonthly}: ${CL.formatMoney(monthly, cur)}`,
+              `${I18N.compound.outFutureValue} (${years}y): ${CL.formatMoney(balance, cur)}`,
+              `${I18N.compound.outRealValue}: ${CL.formatMoney(realFv, cur)}`,
+            ].join(' | ')
+          : [
+              `${I18N.compound.outFutureValue} (${years}y): ${CL.formatMoney(balance, cur)}`,
+              `${I18N.compound.outAfterTax}: ${CL.formatMoney(afterTaxFv, cur)}`,
+              `${I18N.compound.outRealValue}: ${CL.formatMoney(realFv, cur)}`,
+              `${I18N.compound.outTotalContrib}: ${CL.formatMoney(totalContrib, cur)}`,
+              `${I18N.compound.outTotalRoi}: ${CL.formatPercent(totalRoi, 1)}`,
+            ].join(' | ');
 
       if (syncUrl) CL.syncUrlState(getState());
     }
@@ -1166,17 +1211,24 @@
     if (params.has('cur')) currency.set(params.get('cur').toUpperCase(), true);
     if (params.has('p')) elPrincipal.value = params.get('p');
     if (params.has('m')) elMonthly.value = params.get('m');
+    if (params.has('goal') && elGoal) elGoal.value = params.get('goal');
     if (params.has('r')) elRate.value = params.get('r');
     if (params.has('y')) elYears.value = params.get('y');
     if (params.has('f')) elFreq.value = params.get('f');
     if (params.has('tax')) elTax.value = params.get('tax');
     if (params.has('inf')) elInflation.value = params.get('inf');
 
-    calculate(false);
+    setMode(params.get('mode') === 'goal' ? 'goal' : 'growth', false);
 
-    [elPrincipal, elMonthly, elRate, elYears, elTax, elInflation].forEach((input) => {
-      input.addEventListener('input', () => calculate(true));
+    shell.querySelectorAll('[data-cmp-mode]').forEach((btn) => {
+      btn.addEventListener('click', () => setMode(btn.getAttribute('data-cmp-mode'), true));
     });
+
+    [elPrincipal, elMonthly, elGoal, elRate, elYears, elTax, elInflation]
+      .filter(Boolean)
+      .forEach((input) => {
+        input.addEventListener('input', () => calculate(true));
+      });
     elFreq.addEventListener('change', () => calculate(true));
 
     if (elRateSlider) {
@@ -1191,6 +1243,13 @@
         calculate(true);
       });
     }
+
+    shell.querySelectorAll('[data-cmp-goal]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        if (elGoal) elGoal.value = btn.getAttribute('data-cmp-goal');
+        calculate(true);
+      });
+    });
 
     shell.querySelectorAll('[data-cmp-tax]').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -1220,12 +1279,13 @@
       currency.set(defaultCurrency, true);
       elPrincipal.value = defaults.principal;
       elMonthly.value = defaults.monthly;
+      if (elGoal) elGoal.value = defaults.goal;
       elRate.value = defaults.rate;
       elYears.value = defaults.years;
       elFreq.value = defaults.freq;
       elTax.value = defaults.tax;
       elInflation.value = defaults.inflation;
-      calculate(true);
+      setMode('growth', true);
     });
   }
 
@@ -1515,6 +1575,209 @@
     });
   }
 
+  /* ------------------------------------------------------------------------
+     8. 1-on-1 Platform Comparison Calculator (Marketplace & Payment)
+     ------------------------------------------------------------------------ */
+  function initCompare(shell) {
+    const CL = window.CalcLedger;
+    const I18N = CL.I18N;
+    const CFG = window.CALCLEDGER_COMPARE || {};
+    const isPayment = CFG.kind === 'payment';
+    const defaultCurrency = shell.getAttribute('data-default-currency') || 'EUR';
+    const nameA = (CFG.sideA && CFG.sideA.name) || 'Platform A';
+    const nameB = (CFG.sideB && CFG.sideB.name) || 'Platform B';
+
+    const winnerLabel = document.getElementById('vs-winner-label');
+    const winnerDelta = document.getElementById('vs-winner-delta');
+    const winnerSub = document.getElementById('vs-winner-sub');
+    const cardA = document.getElementById('vs-card-a');
+    const cardB = document.getElementById('vs-card-b');
+    const badgeA = document.getElementById('vs-badge-a');
+    const badgeB = document.getElementById('vs-badge-b');
+    const outA = [1, 2, 3, 4, 5].map((i) => document.getElementById(`vs-a-m${i}`));
+    const outB = [1, 2, 3, 4, 5].map((i) => document.getElementById(`vs-b-m${i}`));
+
+    const allInputs = Array.from(shell.querySelectorAll('.calc-inputs input'));
+    const initialSnapshot = allInputs.map((el) => ({
+      el,
+      type: el.type,
+      value: el.type === 'checkbox' ? el.checked : el.value,
+    }));
+
+    let lastSummary = '';
+    const currency = bindCurrencySwitcher(shell, defaultCurrency, () => calculate(true));
+
+    function readVal(id, fallback = 0) {
+      const el = document.getElementById(id);
+      return el ? CL.parseNum(el.value, fallback) : fallback;
+    }
+
+    function setWinnerUI(monthlyDiff, winnerName, cur) {
+      const absMonthly = Math.abs(monthlyDiff);
+      const absYearly = absMonthly * 12;
+      if (absMonthly < 0.01) {
+        winnerLabel.textContent = `${nameA} vs ${nameB}`;
+        winnerDelta.textContent = CL.formatMoney(0, cur);
+        if (winnerSub) winnerSub.textContent = I18N.compare.tieText;
+        cardA.classList.remove('is-winner');
+        cardB.classList.remove('is-winner');
+        badgeA.hidden = true;
+        badgeB.hidden = true;
+      } else {
+        const aWins = monthlyDiff > 0;
+        winnerLabel.textContent = `${winnerName} · ${I18N.compare.winnerBadge}`;
+        winnerDelta.textContent = `+${CL.formatMoney(absMonthly, cur)}`;
+        if (winnerSub) {
+          winnerSub.textContent = I18N.compare.winnerSaves
+            .replace('{winner}', winnerName)
+            .replace('{monthly}', CL.formatMoney(absMonthly, cur))
+            .replace('{yearly}', CL.formatMoney(absYearly, cur));
+        }
+        cardA.classList.toggle('is-winner', aWins);
+        cardB.classList.toggle('is-winner', !aWins);
+        badgeA.hidden = !aWins;
+        badgeB.hidden = aWins;
+      }
+    }
+
+    function getState() {
+      const state = { cur: currency.get() };
+      allInputs.forEach((el) => {
+        if (!el.id) return;
+        const shortKey = el.id.replace(/^vs-/, '');
+        state[shortKey] = el.type === 'checkbox' ? (el.checked ? '1' : '0') : el.value;
+      });
+      return state;
+    }
+
+    function calculate(syncUrl) {
+      const cur = currency.get();
+
+      if (isPayment) {
+        const amount = Math.max(0, readVal('vs-amount', 100));
+        const txCount = Math.max(1, Math.round(readVal('vs-orders', 100)));
+        const fx = Math.max(0, Math.min(20, readVal('vs-fx', 0)));
+        const aPct = Math.max(0, Math.min(50, readVal('vs-a-pct', 2.99)));
+        const aFix = Math.max(0, readVal('vs-a-fix', 0.35));
+        const bPct = Math.max(0, Math.min(50, readVal('vs-b-pct', 1.5)));
+        const bFix = Math.max(0, readVal('vs-b-fix', 0.25));
+
+        const evalPay = (pct, fix) => {
+          const fee = amount > 0 ? amount * ((pct + fx) / 100) + fix : 0;
+          const net = Math.max(0, amount - fee);
+          const eff = amount > 0 ? (fee / amount) * 100 : 0;
+          return { net, fee, eff, monthlyFees: fee * txCount, yearlyFees: fee * txCount * 12 };
+        };
+
+        const a = evalPay(aPct, aFix);
+        const b = evalPay(bPct, bFix);
+
+        outA[0].textContent = CL.formatMoney(a.net, cur);
+        outA[1].textContent = CL.formatMoney(a.fee, cur);
+        outA[2].textContent = CL.formatPercent(a.eff, 2);
+        outA[3].textContent = CL.formatMoney(a.monthlyFees, cur);
+        outA[4].textContent = CL.formatMoney(a.yearlyFees, cur);
+
+        outB[0].textContent = CL.formatMoney(b.net, cur);
+        outB[1].textContent = CL.formatMoney(b.fee, cur);
+        outB[2].textContent = CL.formatPercent(b.eff, 2);
+        outB[3].textContent = CL.formatMoney(b.monthlyFees, cur);
+        outB[4].textContent = CL.formatMoney(b.yearlyFees, cur);
+
+        // Positive diff => A saves more (lower fees); negative => B saves more
+        const diff = b.monthlyFees - a.monthlyFees;
+        const winnerName = diff >= 0 ? nameA : nameB;
+        setWinnerUI(diff, winnerName, cur);
+
+        lastSummary = `${nameA}: ${CL.formatMoney(a.fee, cur)}/tx (${CL.formatMoney(a.yearlyFees, cur)}/yr) vs ${nameB}: ${CL.formatMoney(b.fee, cur)}/tx (${CL.formatMoney(b.yearlyFees, cur)}/yr)`;
+      } else {
+        const price = Math.max(0, readVal('vs-price', 0));
+        const cogs = Math.max(0, readVal('vs-cogs', 0));
+        const ship = Math.max(0, readVal('vs-ship', 0));
+        const acos = Math.max(0, Math.min(100, readVal('vs-acos', 0)));
+        const returnsPct = Math.max(0, Math.min(60, readVal('vs-returns', 0)));
+        const orders = Math.max(1, Math.round(readVal('vs-orders', 100)));
+        const vatCheck = document.getElementById('vs-vat-on');
+        const vatWrap = document.getElementById('vs-vat-wrap');
+        const vatOn = vatCheck ? vatCheck.checked : false;
+        const vatRate = Math.max(0, Math.min(100, readVal('vs-vat-rate', 0)));
+        if (vatWrap) vatWrap.hidden = !vatOn;
+
+        const vatFactor = vatOn && vatRate > 0 ? (vatRate / 100) / (1 + vatRate / 100) : 0;
+        const vatAmt = price * vatFactor;
+        const adCost = price * (acos / 100);
+        const r = returnsPct / 100;
+
+        const evalSide = (commPct, payPct, fixFee) => {
+          const fees = price * ((commPct + payPct) / 100) + fixFee;
+          const singleNet = price - vatAmt - fees - adCost - cogs - ship;
+          const expectedNet = (1 - r) * singleNet - r * (ship + adCost + fixFee);
+          const margin = price > 0 ? (expectedNet / price) * 100 : 0;
+          const profitBeforeAds = (1 - r) * (price - vatAmt - fees - cogs - ship) - r * (ship + fixFee);
+          const beAcos = price > 0 ? Math.max(0, (profitBeforeAds / price) * 100) : 0;
+          return { fees, expectedNet, margin, beAcos, monthly: expectedNet * orders };
+        };
+
+        const a = evalSide(readVal('vs-a-comm', 10), readVal('vs-a-pay', 0), readVal('vs-a-fix', 0));
+        const b = evalSide(readVal('vs-b-comm', 15), readVal('vs-b-pay', 0), readVal('vs-b-fix', 0));
+
+        const paintSide = (outs, res) => {
+          outs[0].textContent = CL.formatMoney(res.expectedNet, cur);
+          outs[0].classList.toggle('is-negative', res.expectedNet < 0);
+          outs[1].textContent = CL.formatPercent(res.margin, 1);
+          outs[1].classList.toggle('is-negative', res.margin < 0);
+          outs[2].textContent = CL.formatMoney(res.fees, cur);
+          outs[3].textContent = CL.formatPercent(res.beAcos, 1);
+          outs[4].textContent = CL.formatMoney(res.monthly, cur);
+          outs[4].classList.toggle('is-negative', res.monthly < 0);
+        };
+
+        paintSide(outA, a);
+        paintSide(outB, b);
+
+        const diff = a.monthly - b.monthly;
+        const winnerName = diff >= 0 ? nameA : nameB;
+        setWinnerUI(diff, winnerName, cur);
+
+        lastSummary = `${nameA}: ${CL.formatMoney(a.expectedNet, cur)}/order (${CL.formatMoney(a.monthly, cur)}/mo) vs ${nameB}: ${CL.formatMoney(b.expectedNet, cur)}/order (${CL.formatMoney(b.monthly, cur)}/mo)`;
+      }
+
+      if (syncUrl) CL.syncUrlState(getState());
+    }
+
+    const params = CL.readParams();
+    if (params.has('cur')) currency.set(params.get('cur').toUpperCase(), true);
+    allInputs.forEach((el) => {
+      if (!el.id) return;
+      const shortKey = el.id.replace(/^vs-/, '');
+      if (params.has(shortKey)) {
+        if (el.type === 'checkbox') el.checked = params.get(shortKey) === '1';
+        else el.value = params.get(shortKey);
+      }
+    });
+
+    calculate(false);
+
+    allInputs.forEach((el) => {
+      el.addEventListener(el.type === 'checkbox' ? 'change' : 'input', () => calculate(true));
+    });
+
+    document.getElementById('vs-copy-result').addEventListener('click', () => {
+      CL.copyText(lastSummary, I18N.copiedResult);
+    });
+    document.getElementById('vs-copy-link').addEventListener('click', () => {
+      CL.copyText(CL.buildShareUrl(getState()), I18N.copiedLink);
+    });
+    document.getElementById('vs-reset').addEventListener('click', () => {
+      currency.set(defaultCurrency, true);
+      initialSnapshot.forEach((snap) => {
+        if (snap.type === 'checkbox') snap.el.checked = snap.value;
+        else snap.el.value = snap.value;
+      });
+      calculate(true);
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     const shell = document.querySelector('[data-calc]');
     if (!shell) return;
@@ -1522,6 +1785,7 @@
     if (type === 'vat') initVat(shell);
     else if (type === 'marketplace') initMarketplace(shell);
     else if (type === 'payment') initPayment(shell);
+    else if (type === 'compare') initCompare(shell);
     else if (type === 'roas') initRoas(shell);
     else if (type === 'margin') initMargin(shell);
     else if (type === 'freelance') initFreelance(shell);

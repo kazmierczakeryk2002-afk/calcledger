@@ -6,6 +6,7 @@ import {
   renderAdSlot,
   renderCurrencyControl,
   renderBreadcrumbs,
+  renderHint,
   renderFaqSection,
   renderRelatedCalculators,
   buildBreadcrumbJsonLd,
@@ -60,7 +61,7 @@ export function renderFreelancePage(lang) {
 
           <div class="field-row">
             <div class="field">
-              <label class="field__label" for="fl-tax">${escapeHtml(t.freelance.taxRateLabel)}</label>
+              <label class="field__label" for="fl-tax">${escapeHtml(t.freelance.taxRateLabel)}${renderHint(t.hints.flTax)}</label>
               <input class="input num" type="number" id="fl-tax" inputmode="decimal" step="1" min="0" max="80" value="${def.tax}">
             </div>
             <div class="field">
@@ -75,7 +76,7 @@ export function renderFreelancePage(lang) {
               <input class="input num" type="number" id="fl-hours-week" inputmode="decimal" step="1" min="1" max="80" value="40">
             </div>
             <div class="field">
-              <label class="field__label" for="fl-billable-pct">${escapeHtml(t.freelance.billablePctLabel)}</label>
+              <label class="field__label" for="fl-billable-pct">${escapeHtml(t.freelance.billablePctLabel)}${renderHint(t.hints.flBillable)}</label>
               <input class="input num" type="number" id="fl-billable-pct" inputmode="decimal" step="5" min="10" max="100" value="70">
             </div>
           </div>

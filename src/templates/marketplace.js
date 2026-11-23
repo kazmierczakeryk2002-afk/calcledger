@@ -2,12 +2,14 @@ import { SITE_CONFIG } from '../config.js';
 import { getRoutePath, getAbsoluteUrl } from '../data/routes.js';
 import { getI18n, escapeHtml, safeJsonLd } from '../data/i18n.js';
 import { MARKETPLACES } from '../data/marketplaces.js';
+import { COMPARISONS } from '../data/comparisons.js';
 import { getMarketPriority, sortByKeyOrder } from '../data/market-priority.js';
 import {
   renderLayout,
   renderAdSlot,
   renderCurrencyControl,
   renderBreadcrumbs,
+  renderHint,
   renderFaqSection,
   renderRelatedCalculators,
   buildBreadcrumbJsonLd,
@@ -58,6 +60,13 @@ export function renderMarketplacePage(lang, marketplace = null) {
       const isCurrent = marketplace && m.key === marketplace.key;
       return `<a class="quick-link${isCurrent ? ' is-current' : ''}" href="${escapeHtml(getRoutePath(`marketplace:${m.key}`, lang))}"${isCurrent ? ' aria-current="page"' : ''}>${escapeHtml(m.name)}</a>`;
     })
+    .join('');
+
+  const compareLinksHtml = COMPARISONS.filter((c) => c.kind === 'marketplace')
+    .map(
+      (c) =>
+        `<a class="quick-link" href="${escapeHtml(getRoutePath(`compare:${c.key}`, lang))}">${escapeHtml(c.sideA.name)} vs ${escapeHtml(c.sideB.name)} &rarr;</a>`
+    )
     .join('');
 
   const mpLinksHtml = orderedMarketplaces
@@ -122,7 +131,7 @@ export function renderMarketplacePage(lang, marketplace = null) {
 
           <div class="field-row">
             <div class="field">
-              <label class="field__label" for="mp-cogs">${escapeHtml(t.marketplace.cogsLabel)}</label>
+              <label class="field__label" for="mp-cogs">${escapeHtml(t.marketplace.cogsLabel)}${renderHint(t.hints.cogs)}</label>
               <input class="input num" type="number" id="mp-cogs" inputmode="decimal" step="any" min="0" value="${activePreset.cogs}">
             </div>
             <div class="field">
@@ -150,7 +159,7 @@ export function renderMarketplacePage(lang, marketplace = null) {
               <input class="input num" type="number" id="mp-fixed-fee" inputmode="decimal" step="0.05" min="0" value="${activePreset.fixedFee}">
             </div>
             <div class="field">
-              <label class="field__label" for="mp-acos">${escapeHtml(t.marketplace.acosLabel)}</label>
+              <label class="field__label" for="mp-acos">${escapeHtml(t.marketplace.acosLabel)}${renderHint(t.hints.acos)}</label>
               <input class="input num" type="number" id="mp-acos" inputmode="decimal" step="0.5" min="0" max="100" value="${activePreset.acosPct}">
             </div>
           </div>
@@ -159,7 +168,7 @@ export function renderMarketplacePage(lang, marketplace = null) {
 
           <div class="field-row">
             <div class="field">
-              <label class="field__label" for="mp-returns">${escapeHtml(t.marketplace.returnsLabel)}</label>
+              <label class="field__label" for="mp-returns">${escapeHtml(t.marketplace.returnsLabel)}${renderHint(t.hints.returns)}</label>
               <input class="input num" type="number" id="mp-returns" inputmode="decimal" step="0.5" min="0" max="60" value="0">
             </div>
             <div class="field">
@@ -180,7 +189,7 @@ export function renderMarketplacePage(lang, marketplace = null) {
           <div class="field field--checkbox">
             <label class="check-row">
               <input type="checkbox" id="mp-vat-enabled"${activePreset.vatRegistered ? ' checked' : ''}>
-              <span>${escapeHtml(t.marketplace.vatRegisteredLabel)}</span>
+              <span>${escapeHtml(t.marketplace.vatRegisteredLabel)}${renderHint(t.hints.vatRegistered)}</span>
             </label>
           </div>
 
@@ -232,7 +241,7 @@ export function renderMarketplacePage(lang, marketplace = null) {
               <strong class="kpi__value num" id="mp-out-target-price">—</strong>
             </div>
             <div class="kpi">
-              <span class="kpi__label">${escapeHtml(t.marketplace.outBreakEvenAcos)}</span>
+              <span class="kpi__label">${escapeHtml(t.marketplace.outBreakEvenAcos)}${renderHint(t.hints.beAcos)}</span>
               <strong class="kpi__value num" id="mp-out-be-acos">—</strong>
             </div>
           </div>
@@ -277,6 +286,7 @@ export function renderMarketplacePage(lang, marketplace = null) {
             <tbody id="mp-compare-body"></tbody>
           </table>
         </div>
+        <nav class="quick-strip" aria-label="${escapeHtml(t.compare.sectionHeading)}">${compareLinksHtml}</nav>
       </section>
 
       <script>window.CALCLEDGER_MP_PRESETS = ${safeJsonLd(presetMap)};window.CALCLEDGER_MP_ORDER = ${safeJsonLd(presetOrder)};</script>

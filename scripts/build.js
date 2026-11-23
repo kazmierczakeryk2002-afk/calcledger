@@ -7,11 +7,13 @@ import { ROUTES, getRoutePath, getAbsoluteUrl, getHreflangAlternates } from '../
 import { VAT_COUNTRIES } from '../src/data/vat-countries.js';
 import { MARKETPLACES } from '../src/data/marketplaces.js';
 import { PAYMENT_PROVIDERS } from '../src/data/payment-providers.js';
+import { COMPARISONS } from '../src/data/comparisons.js';
 
 import { renderHomePage, renderNotFoundPage } from '../src/templates/home.js';
 import { renderVatPage } from '../src/templates/vat.js';
 import { renderMarketplacePage } from '../src/templates/marketplace.js';
 import { renderPaymentPage } from '../src/templates/payment.js';
+import { renderComparePage } from '../src/templates/compare.js';
 import { renderRoasPage } from '../src/templates/roas.js';
 import { renderMarginPage } from '../src/templates/margin.js';
 import { renderFreelancePage } from '../src/templates/freelance.js';
@@ -59,7 +61,10 @@ function generateSitemapXml() {
         ? '1.0'
         : ['vat', 'marketplace', 'payment', 'roas', 'margin', 'freelance', 'compound'].includes(pageKey)
           ? '0.9'
-          : pageKey.startsWith('vat:') || pageKey.startsWith('marketplace:') || pageKey.startsWith('payment:')
+          : pageKey.startsWith('vat:') ||
+              pageKey.startsWith('marketplace:') ||
+              pageKey.startsWith('payment:') ||
+              pageKey.startsWith('compare:')
             ? '0.8'
             : '0.5';
 
@@ -137,19 +142,28 @@ function generateLlmsTxt() {
       `- [${p.name} Fee Calculator (Net & Reverse)](${getAbsoluteUrl(`payment:${p.key}`, 'en')}): ${p.feeSummary.en} Also in [DE](${getAbsoluteUrl(`payment:${p.key}`, 'de')}) and [PL](${getAbsoluteUrl(`payment:${p.key}`, 'pl')}).`
   ).join('\n');
 
+  const cmpLines = COMPARISONS.map(
+    (c) =>
+      `- [${c.sideA.name} vs ${c.sideB.name} Comparison](${getAbsoluteUrl(`compare:${c.key}`, 'en')}): ${c.seo.en.summary} Also in [DE](${getAbsoluteUrl(`compare:${c.key}`, 'de')}) and [PL](${getAbsoluteUrl(`compare:${c.key}`, 'pl')}).`
+  ).join('\n');
+
   return `# ${SITE_CONFIG.brandName}
 
-> CalcLedger (${SITE_CONFIG.domain}) is a free, privacy-first suite of 7 browser-local financial and e-commerce calculators available in English, German (Deutsch), and Polish (Polski), supporting EUR, USD, GBP, CHF, and PLN with shareable URL parameters and zero account or server tracking.
+> CalcLedger (${SITE_CONFIG.domain}) is a free, privacy-first suite of 7 browser-local financial and e-commerce calculators plus 1-on-1 platform comparisons available in English, German (Deutsch), and Polish (Polski), supporting EUR, USD, GBP, CHF, and PLN with shareable URL parameters and zero account or server tracking.
 
 ## Core Calculators
 
-- [Compound Interest & ROI Calculator](${getAbsoluteUrl('compound', 'en')}): Portfolio growth projection with recurring monthly contributions, interactive sliders, capital gains tax (0%, 19% PL Belka, 26.375% DE Abgeltungssteuer), inflation-adjusted real purchasing power, SVG chart, year-by-year table, and CSV export. ([DE](${getAbsoluteUrl('compound', 'de')}) · [PL](${getAbsoluteUrl('compound', 'pl')}))
+- [Compound Interest & ROI Calculator](${getAbsoluteUrl('compound', 'en')}): Portfolio growth & reverse savings-goal projection with interactive sliders, capital gains tax (0%, 19% PL Belka, 26.375% DE Abgeltungssteuer), inflation-adjusted real purchasing power, SVG chart, year-by-year table, and CSV export. ([DE](${getAbsoluteUrl('compound', 'de')}) · [PL](${getAbsoluteUrl('compound', 'pl')}))
 - [Profit Margin & Markup Calculator](${getAbsoluteUrl('margin', 'en')}): Cost, selling price, gross margin %, markup %, and clickable Margin-to-Markup reference table. ([DE](${getAbsoluteUrl('margin', 'de')}) · [PL](${getAbsoluteUrl('margin', 'pl')}))
 - [VAT / MwSt Calculator (Net ↔ Gross)](${getAbsoluteUrl('vat', 'en')}): Add or reverse-calculate VAT across 15 European countries and custom rates. ([DE](${getAbsoluteUrl('vat', 'de')}) · [PL](${getAbsoluteUrl('vat', 'pl')}))
 - [Marketplace Seller Profit & Fee Calculator](${getAbsoluteUrl('marketplace', 'en')}): Net profit per order & monthly volume, return rate modeling, margin, ROI, ad spend (ACOS), VAT deduction, Break-Even Price, Target Margin Price, Break-Even ACOS, and live 6-platform side-by-side comparison (Allegro, Amazon FBA, Etsy, eBay, Shopify, Upwork). ([DE](${getAbsoluteUrl('marketplace', 'de')}) · [PL](${getAbsoluteUrl('marketplace', 'pl')}))
 - [PayPal & Stripe Payment Fee Calculator](${getAbsoluteUrl('payment', 'en')}): Forward payout and reverse invoice fee calculation including international FX spreads. ([DE](${getAbsoluteUrl('payment', 'de')}) · [PL](${getAbsoluteUrl('payment', 'pl')}))
 - [ROAS ↔ ACOS & Break-Even Ads Calculator](${getAbsoluteUrl('roas', 'en')}): Convert ROAS to ACOS, find Break-Even ROAS from product margin, and model net profit after ad spend. ([DE](${getAbsoluteUrl('roas', 'de')}) · [PL](${getAbsoluteUrl('roas', 'pl')}))
 - [Freelance Hourly & Day Rate Calculator (B2B)](${getAbsoluteUrl('freelance', 'en')}): Sustainable B2B hourly and day rate from target annual net income, overhead, taxes, vacation weeks, and billable utilization. ([DE](${getAbsoluteUrl('freelance', 'de')}) · [PL](${getAbsoluteUrl('freelance', 'pl')}))
+
+## 1-on-1 Platform Comparisons
+
+${cmpLines}
 
 ## European VAT Calculators (15 Countries)
 
@@ -166,7 +180,7 @@ ${payLines}
 ## Full Reference & Policies
 
 - [Full Machine-Readable Reference (Formulas & Tax Tables)](${SITE_CONFIG.domain}/llms-full.txt)
-- [XML Sitemap (105 Localized Pages)](${SITE_CONFIG.domain}/sitemap.xml)
+- [XML Sitemap (117 Localized Pages)](${SITE_CONFIG.domain}/sitemap.xml)
 - [About CalcLedger](${getAbsoluteUrl('about', 'en')})
 - [Privacy Policy](${getAbsoluteUrl('privacy', 'en')})
 - [Terms & Disclaimer](${getAbsoluteUrl('terms', 'en')})
@@ -332,6 +346,12 @@ function build() {
     pageCount++;
     for (const provider of PAYMENT_PROVIDERS) {
       writeRouteHtml(getRoutePath(`payment:${provider.key}`, lang), renderPaymentPage(lang, provider));
+      pageCount++;
+    }
+
+    // 4b. 1-on-1 Platform Comparison Pages (Allegro vs Amazon, Amazon vs eBay, Etsy vs Shopify, PayPal vs Stripe)
+    for (const cmp of COMPARISONS) {
+      writeRouteHtml(getRoutePath(`compare:${cmp.key}`, lang), renderComparePage(lang, cmp));
       pageCount++;
     }
 

@@ -8,6 +8,7 @@ import { getI18n, escapeHtml, safeJsonLd } from '../data/i18n.js';
 import { VAT_COUNTRIES } from '../data/vat-countries.js';
 import { MARKETPLACES } from '../data/marketplaces.js';
 import { PAYMENT_PROVIDERS } from '../data/payment-providers.js';
+import { COMPARISONS } from '../data/comparisons.js';
 import { getMarketPriority, sortByKeyOrder } from '../data/market-priority.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -25,6 +26,11 @@ const ASSET_V = {
   app: hashAsset('assets/js/app.js'),
   calc: hashAsset('assets/js/calculators.js'),
 };
+
+export function renderHint(text) {
+  if (!text) return '';
+  return ` <button type="button" class="hint-btn" data-hint="${escapeHtml(text)}" aria-label="${escapeHtml(text)}">?</button>`;
+}
 
 export function renderAdSlot(slotKey, t) {
   const active = isAdsenseActive();
@@ -315,6 +321,12 @@ export function renderLayout({
       h: getRoutePath(`payment:${p.key}`, lang),
       k: `${p.name} ${p.feeSummary[lang]} fee prowizja`.toLowerCase(),
     })),
+    ...COMPARISONS.map((cmp) => ({
+      t: `${cmp.sideA.name} vs ${cmp.sideB.name}`,
+      c: 'Compare',
+      h: getRoutePath(`compare:${cmp.key}`, lang),
+      k: `${cmp.sideA.name} ${cmp.sideB.name} vs compare porownanie vergleich`.toLowerCase(),
+    })),
   ];
 
   const clientI18n = {
@@ -384,6 +396,7 @@ export function renderLayout({
     },
     compound: {
       outFutureValue: t.compound.outFutureValue,
+      outRequiredMonthly: t.compound.outRequiredMonthly,
       outAfterTax: t.compound.outAfterTax,
       outRealValue: t.compound.outRealValue,
       outTotalContrib: t.compound.outTotalContrib,
@@ -400,6 +413,11 @@ export function renderLayout({
       legendPrincipal: t.compound.legendPrincipal,
       legendContrib: t.compound.legendContrib,
       legendInterest: t.compound.legendInterest,
+    },
+    compare: {
+      tieText: t.compare.tieText,
+      winnerSaves: t.compare.winnerSaves,
+      winnerBadge: t.compare.winnerBadge,
     },
   };
 

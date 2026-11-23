@@ -6,6 +6,7 @@ import {
   renderAdSlot,
   renderCurrencyControl,
   renderBreadcrumbs,
+  renderHint,
   renderFaqSection,
   renderRelatedCalculators,
   buildBreadcrumbJsonLd,
@@ -19,9 +20,9 @@ export function renderCompoundPage(lang) {
   const defaultCurrency = SITE_CONFIG.defaultCurrencyByLang[lang];
 
   const defaultsByLang = {
-    en: { principal: 10000, monthly: 500, rate: 8, years: 15, tax: 0, inflation: 2.5 },
-    de: { principal: 10000, monthly: 400, rate: 7, years: 15, tax: 26.375, inflation: 2.5 },
-    pl: { principal: 20000, monthly: 1500, rate: 8, years: 15, tax: 19, inflation: 2.5 },
+    en: { principal: 10000, monthly: 500, goal: 250000, rate: 8, years: 15, tax: 0, inflation: 2.5 },
+    de: { principal: 10000, monthly: 400, goal: 250000, rate: 7, years: 15, tax: 26.375, inflation: 2.5 },
+    pl: { principal: 20000, monthly: 1500, goal: 500000, rate: 8, years: 15, tax: 19, inflation: 2.5 },
   };
   const def = defaultsByLang[lang] || defaultsByLang.en;
 
@@ -48,14 +49,32 @@ export function renderCompoundPage(lang) {
         <div class="calc-inputs">
           ${renderCurrencyControl('cmp', defaultCurrency, t)}
 
+          <div class="field">
+            <span class="field__label">${escapeHtml(t.compound.modeLabel)}</span>
+            <div class="seg-group seg-group--full" role="group" aria-label="${escapeHtml(t.compound.modeLabel)}">
+              <button type="button" class="seg-btn is-active" data-cmp-mode="growth" aria-pressed="true">${escapeHtml(t.compound.modeGrowth)}</button>
+              <button type="button" class="seg-btn" data-cmp-mode="goal" aria-pressed="false">${escapeHtml(t.compound.modeGoal)}</button>
+            </div>
+          </div>
+
           <div class="field-row">
             <div class="field">
               <label class="field__label" for="cmp-principal">${escapeHtml(t.compound.principalLabel)}</label>
               <input class="input num" type="number" id="cmp-principal" inputmode="decimal" step="500" min="0" value="${def.principal}">
             </div>
-            <div class="field">
+            <div class="field" id="cmp-monthly-wrap">
               <label class="field__label" for="cmp-monthly">${escapeHtml(t.compound.monthlyLabel)}</label>
               <input class="input num" type="number" id="cmp-monthly" inputmode="decimal" step="50" min="0" value="${def.monthly}">
+            </div>
+            <div class="field" id="cmp-goal-wrap" hidden>
+              <label class="field__label" for="cmp-goal">${escapeHtml(t.compound.goalLabel)}</label>
+              <input class="input num" type="number" id="cmp-goal" inputmode="decimal" step="10000" min="0" value="${def.goal}">
+              <div class="pill-row">
+                <button type="button" class="pill-btn" data-cmp-goal="100000">100k</button>
+                <button type="button" class="pill-btn" data-cmp-goal="250000">250k</button>
+                <button type="button" class="pill-btn" data-cmp-goal="500000">500k</button>
+                <button type="button" class="pill-btn" data-cmp-goal="1000000">1M</button>
+              </div>
             </div>
           </div>
 
@@ -73,7 +92,7 @@ export function renderCompoundPage(lang) {
           </div>
 
           <div class="field">
-            <label class="field__label" for="cmp-freq">${escapeHtml(t.compound.freqLabel)}</label>
+            <label class="field__label" for="cmp-freq">${escapeHtml(t.compound.freqLabel)}${renderHint(t.hints.freq)}</label>
             <select class="input" id="cmp-freq">
               <option value="12" selected>${escapeHtml(t.compound.freqMonthly)}</option>
               <option value="4">${escapeHtml(t.compound.freqQuarterly)}</option>
@@ -84,7 +103,7 @@ export function renderCompoundPage(lang) {
 
           <div class="field-row">
             <div class="field">
-              <label class="field__label" for="cmp-tax">${escapeHtml(t.compound.taxLabel)}</label>
+              <label class="field__label" for="cmp-tax">${escapeHtml(t.compound.taxLabel)}${renderHint(t.hints.capTax)}</label>
               <input class="input num" type="number" id="cmp-tax" inputmode="decimal" step="0.1" min="0" max="60" value="${def.tax}">
               <div class="pill-row">
                 <button type="button" class="pill-btn" data-cmp-tax="0">${escapeHtml(t.compound.taxChipNone)}</button>
@@ -93,7 +112,7 @@ export function renderCompoundPage(lang) {
               </div>
             </div>
             <div class="field">
-              <label class="field__label" for="cmp-inflation">${escapeHtml(t.compound.inflationLabel)}</label>
+              <label class="field__label" for="cmp-inflation">${escapeHtml(t.compound.inflationLabel)}${renderHint(t.hints.inflation)}</label>
               <input class="input num" type="number" id="cmp-inflation" inputmode="decimal" step="0.1" min="0" max="30" value="${def.inflation}">
               <div class="pill-row">
                 <button type="button" class="pill-btn" data-cmp-inf="0">0%</button>
@@ -108,11 +127,11 @@ export function renderCompoundPage(lang) {
         <div class="calc-results" aria-live="polite">
           <div class="result-hero-pair">
             <div class="result-hero">
-              <span class="result-hero__label">${escapeHtml(t.compound.outFutureValue)}</span>
+              <span class="result-hero__label" id="cmp-primary-label">${escapeHtml(t.compound.outFutureValue)}</span>
               <strong class="result-hero__value num" id="cmp-out-fv">—</strong>
             </div>
             <div class="result-hero result-hero--alt">
-              <span class="result-hero__label">${escapeHtml(t.compound.outRealValue)}</span>
+              <span class="result-hero__label">${escapeHtml(t.compound.outRealValue)}${renderHint(t.hints.realValue)}</span>
               <strong class="result-hero__value num" id="cmp-out-real">—</strong>
             </div>
           </div>

@@ -493,9 +493,76 @@
     }
   }
 
+  /* Discreet ? info-hint popover (tap/click friendly & clamped inside mobile viewport) */
+  function initHints() {
+    const triggers = document.querySelectorAll('.hint-btn[data-hint]');
+    if (!triggers.length) return;
+
+    const pop = document.createElement('div');
+    pop.className = 'hint-popover';
+    pop.setAttribute('role', 'tooltip');
+    pop.hidden = true;
+    document.body.appendChild(pop);
+
+    let activeBtn = null;
+
+    function close() {
+      pop.hidden = true;
+      if (activeBtn) {
+        activeBtn.setAttribute('aria-expanded', 'false');
+        activeBtn = null;
+      }
+    }
+
+    function open(btn) {
+      const text = btn.getAttribute('data-hint');
+      if (!text) return;
+      pop.textContent = text;
+      pop.hidden = false;
+      pop.style.left = '0px';
+      pop.style.top = '0px';
+
+      const rect = btn.getBoundingClientRect();
+      const popW = Math.min(pop.offsetWidth || 260, window.innerWidth - 24);
+      const popH = pop.offsetHeight || 64;
+      const left = Math.max(12, Math.min(rect.left + rect.width / 2 - popW / 2, window.innerWidth - popW - 12));
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const top = spaceBelow > popH + 14 ? rect.bottom + 8 : Math.max(12, rect.top - popH - 8);
+
+      pop.style.left = `${Math.round(left)}px`;
+      pop.style.top = `${Math.round(top)}px`;
+
+      if (activeBtn && activeBtn !== btn) activeBtn.setAttribute('aria-expanded', 'false');
+      activeBtn = btn;
+      btn.setAttribute('aria-expanded', 'true');
+    }
+
+    triggers.forEach((btn) => {
+      btn.setAttribute('aria-expanded', 'false');
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (activeBtn === btn && !pop.hidden) close();
+        else open(btn);
+      });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!pop.hidden && !pop.contains(e.target) && (!activeBtn || !activeBtn.contains(e.target))) {
+        close();
+      }
+    });
+    window.addEventListener('scroll', close, { passive: true });
+    window.addEventListener('resize', close, { passive: true });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !pop.hidden) close();
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     initMobileMenu();
     initQuickFinder();
+    initHints();
     initInputCraft();
     initTapToCopyResults();
     initMobileResultDock();

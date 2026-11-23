@@ -35,6 +35,13 @@ export const MARKETPLACE_KEYS = [
 
 export const PAYMENT_PROVIDER_KEYS = ['paypal', 'stripe'];
 
+export const COMPARISON_KEYS = [
+  'allegro-vs-amazon',
+  'amazon-vs-ebay',
+  'etsy-vs-shopify',
+  'paypal-vs-stripe',
+];
+
 const COUNTRY_SLUGS = {
   germany: { en: 'germany', de: 'deutschland', pl: 'niemcy' },
   austria: { en: 'austria', de: 'oesterreich', pl: 'austria' },
@@ -151,6 +158,14 @@ for (const key of PAYMENT_PROVIDER_KEYS) {
     en: `/payment-fee-calculator/${PAYMENT_SLUGS[key].en}/`,
     de: `/de/zahlungsgebuehren-rechner/${PAYMENT_SLUGS[key].de}/`,
     pl: `/pl/kalkulator-prowizji-platniczych/${PAYMENT_SLUGS[key].pl}/`,
+  };
+}
+
+for (const key of COMPARISON_KEYS) {
+  ROUTES[`compare:${key}`] = {
+    en: `/compare/${key}/`,
+    de: `/de/vergleich/${key}/`,
+    pl: `/pl/porownanie/${key}/`,
   };
 }
 

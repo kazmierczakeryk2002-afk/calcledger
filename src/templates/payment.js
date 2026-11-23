@@ -7,6 +7,7 @@ import {
   renderAdSlot,
   renderCurrencyControl,
   renderBreadcrumbs,
+  renderHint,
   renderFaqSection,
   renderRelatedCalculators,
   buildBreadcrumbJsonLd,
@@ -72,10 +73,12 @@ export function renderPaymentPage(lang, provider = null) {
       </section>`
     : '';
 
-  const topPayStripHtml = PAYMENT_PROVIDERS.map((p) => {
-    const isCurrent = provider && p.key === provider.key;
-    return `<a class="quick-link${isCurrent ? ' is-current' : ''}" href="${escapeHtml(getRoutePath(`payment:${p.key}`, lang))}"${isCurrent ? ' aria-current="page"' : ''}>${escapeHtml(p.name)}</a>`;
-  }).join('');
+  const topPayStripHtml =
+    PAYMENT_PROVIDERS.map((p) => {
+      const isCurrent = provider && p.key === provider.key;
+      return `<a class="quick-link${isCurrent ? ' is-current' : ''}" href="${escapeHtml(getRoutePath(`payment:${p.key}`, lang))}"${isCurrent ? ' aria-current="page"' : ''}>${escapeHtml(p.name)}</a>`;
+    }).join('') +
+    `<a class="quick-link" href="${escapeHtml(getRoutePath('compare:paypal-vs-stripe', lang))}">PayPal vs Stripe &rarr;</a>`;
 
   const bodyHtml = `
     <div class="container">
@@ -129,7 +132,7 @@ export function renderPaymentPage(lang, provider = null) {
           </div>
 
           <div class="field">
-            <label class="field__label" for="pay-fx">${escapeHtml(t.payment.fxPctLabel)}</label>
+            <label class="field__label" for="pay-fx">${escapeHtml(t.payment.fxPctLabel)}${renderHint(t.hints.fxSpread)}</label>
             <input class="input num" type="number" id="pay-fx" inputmode="decimal" step="0.1" min="0" max="25" value="${activePreset.fxPct}">
           </div>
         </div>
