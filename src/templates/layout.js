@@ -1,3 +1,7 @@
+import fs from 'node:fs';
+import crypto from 'node:crypto';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { SITE_CONFIG, isAdsenseActive } from '../config.js';
 import { getRoutePath, getAbsoluteUrl, getHreflangAlternates } from '../data/routes.js';
 import { getI18n, escapeHtml, safeJsonLd } from '../data/i18n.js';
@@ -5,6 +9,22 @@ import { VAT_COUNTRIES } from '../data/vat-countries.js';
 import { MARKETPLACES } from '../data/marketplaces.js';
 import { PAYMENT_PROVIDERS } from '../data/payment-providers.js';
 import { getMarketPriority, sortByKeyOrder } from '../data/market-priority.js';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+function hashAsset(relPath) {
+  try {
+    const content = fs.readFileSync(path.resolve(__dirname, '..', relPath));
+    return crypto.createHash('sha256').update(content).digest('hex').slice(0, 8);
+  } catch {
+    return '1';
+  }
+}
+
+const ASSET_V = {
+  css: hashAsset('assets/css/styles.css'),
+  app: hashAsset('assets/js/app.js'),
+  calc: hashAsset('assets/js/calculators.js'),
+};
 
 export function renderAdSlot(slotKey, t) {
   const active = isAdsenseActive();
@@ -410,7 +430,7 @@ export function renderLayout({
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/assets/css/styles.css">
+  <link rel="stylesheet" href="/assets/css/styles.css?v=${ASSET_V.css}">
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
@@ -462,12 +482,11 @@ export function renderLayout({
       </nav>
 
       <div class="site-header__actions">
-        <button type="button" class="finder-trigger" id="finder-open" aria-label="${escapeHtml(t.common.searchLabel)}" title="${escapeHtml(t.common.searchLabel)} (⌘K)">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <button type="button" class="finder-trigger" id="finder-open" aria-label="${escapeHtml(t.common.searchLabel)}" title="${escapeHtml(t.common.searchLabel)}">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="11" cy="11" r="7.5"></circle>
             <line x1="20" y1="20" x2="16.4" y2="16.4"></line>
           </svg>
-          <kbd class="finder-trigger__kbd" aria-hidden="true">⌘K</kbd>
         </button>
         <div class="lang-switch" role="navigation" aria-label="${escapeHtml(t.nav.langLabel)}">
           ${langSwitcherHtml}
@@ -624,8 +643,8 @@ export function renderLayout({
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
   <script>window.CALCLEDGER_I18N = ${safeJsonLd(clientI18n)};window.CALCLEDGER_FINDER = ${safeJsonLd(finderIndex)};</script>
-  <script src="/assets/js/app.js" defer></script>
-  ${includeCalculatorScript ? '<script src="/assets/js/calculators.js" defer></script>' : ''}
+  <script src="/assets/js/app.js?v=${ASSET_V.app}" defer></script>
+  ${includeCalculatorScript ? `<script src="/assets/js/calculators.js?v=${ASSET_V.calc}" defer></script>` : ''}
 </body>
 </html>`;
 }
