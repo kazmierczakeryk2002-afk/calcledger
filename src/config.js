@@ -32,8 +32,8 @@ export const SITE_CONFIG = {
     pl: 'PLN',
   },
 
-  // Google AdSense configuration (leave empty until approved by Google AdSense)
-  adsenseClientId: '',
+  // Google AdSense configuration
+  adsenseClientId: 'ca-pub-7758756337402869',
   adsenseSlots: {
     topBanner: '',
     midContent: '',

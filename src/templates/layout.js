@@ -9,7 +9,7 @@ export function renderAdSlot(slotKey, t) {
   const slotId = SITE_CONFIG.adsenseSlots[slotKey] || '';
   const sizeClass = slotKey === 'midContent' ? 'ad-slot--rect' : 'ad-slot--banner';
 
-  if (!active) {
+  if (!active || !slotId) {
     return `<div class="ad-slot ${sizeClass} ad-slot--inactive" data-ad-slot="${escapeHtml(slotKey)}" aria-hidden="true"></div>`;
   }
 
@@ -196,7 +196,7 @@ export function renderLayout({
     .join('\n  ');
 
   const adsenseHead = isAdsenseActive()
-    ? `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${escapeHtml(SITE_CONFIG.adsenseClientId)}" crossorigin="anonymous"></script>`
+    ? `<meta name="google-adsense-account" content="${escapeHtml(SITE_CONFIG.adsenseClientId)}">\n  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${escapeHtml(SITE_CONFIG.adsenseClientId)}" crossorigin="anonymous"></script>`
     : '';
 
   const navItems = [
