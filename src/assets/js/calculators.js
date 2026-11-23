@@ -929,12 +929,300 @@
     });
   }
 
+  /* ------------------------------------------------------------------------
+     6. PayPal & Stripe Payment Fee Calculator (Forward & Reverse)
+     ------------------------------------------------------------------------ */
+  function initPayment(shell) {
+    const CL = window.CalcLedger;
+    const I18N = CL.I18N;
+    const PRESETS = window.CALCLEDGER_PAY_PRESETS || {};
+    const defaultCurrency = shell.getAttribute('data-default-currency') || 'EUR';
+    const defaultPreset = shell.getAttribute('data-default-preset') || '';
+
+    const elPreset = document.getElementById('pay-preset');
+    const elAmount = document.getElementById('pay-amount');
+    const elAmountLabel = document.getElementById('pay-amount-label');
+    const elPct = document.getElementById('pay-pct');
+    const elFixed = document.getElementById('pay-fixed');
+    const elFx = document.getElementById('pay-fx');
+    const elPrimaryLabel = document.getElementById('pay-primary-label');
+
+    const outPrimary = document.getElementById('pay-out-primary');
+    const outGross = document.getElementById('pay-out-gross');
+    const outFee = document.getElementById('pay-out-fee');
+    const outNet = document.getElementById('pay-out-net');
+    const outEff = document.getElementById('pay-out-eff');
+    const barNet = document.getElementById('pay-bar-net');
+    const barFee = document.getElementById('pay-bar-fee');
+    const legNet = document.getElementById('pay-leg-net');
+    const legFee = document.getElementById('pay-leg-fee');
+
+    const initial = {
+      preset: elPreset.value,
+      amount: elAmount.value,
+      pct: elPct.value,
+      fixed: elFixed.value,
+      fx: elFx.value,
+    };
+
+    let mode = 'forward';
+    let lastSummary = '';
+    const currency = bindCurrencySwitcher(shell, defaultCurrency, () => calculate(true));
+
+    function setMode(nextMode, sync) {
+      mode = nextMode === 'reverse' ? 'reverse' : 'forward';
+      shell.querySelectorAll('[data-pay-mode]').forEach((btn) => {
+        const active = btn.getAttribute('data-pay-mode') === mode;
+        btn.classList.toggle('is-active', active);
+        btn.setAttribute('aria-pressed', String(active));
+      });
+      elAmountLabel.textContent = mode === 'forward' ? I18N.payment.amountLabelForward : I18N.payment.amountLabelReverse;
+      elPrimaryLabel.textContent = mode === 'forward' ? I18N.payment.outPrimaryForward : I18N.payment.outPrimaryReverse;
+      calculate(sync);
+    }
+
+    function getState() {
+      return {
+        cur: currency.get(),
+        mode,
+        preset: elPreset.value,
+        amt: elAmount.value,
+        pct: elPct.value,
+        fix: elFixed.value,
+        fx: elFx.value,
+      };
+    }
+
+    function calculate(syncUrl) {
+      const amount = Math.max(0, CL.parseNum(elAmount.value, 0));
+      const pct = Math.max(0, Math.min(50, CL.parseNum(elPct.value, 0)));
+      const fixed = Math.max(0, CL.parseNum(elFixed.value, 0));
+      const fx = Math.max(0, Math.min(25, CL.parseNum(elFx.value, 0)));
+      const totalRate = (pct + fx) / 100;
+
+      let gross = 0;
+      let net = 0;
+      let totalFee = 0;
+
+      if (mode === 'forward') {
+        gross = amount;
+        totalFee = gross > 0 ? gross * totalRate + fixed : 0;
+        net = Math.max(0, gross - totalFee);
+      } else {
+        net = amount;
+        if (net > 0 && totalRate < 0.99) {
+          gross = (net + fixed) / (1 - totalRate);
+          totalFee = gross - net;
+        }
+      }
+
+      const effPct = gross > 0 ? (totalFee / gross) * 100 : 0;
+      const keepPct = gross > 0 ? Math.max(0, 100 - effPct) : 100;
+      const cur = currency.get();
+
+      outPrimary.textContent = CL.formatMoney(mode === 'forward' ? net : gross, cur);
+      outGross.textContent = CL.formatMoney(gross, cur);
+      outFee.textContent = CL.formatMoney(totalFee, cur);
+      outNet.textContent = CL.formatMoney(net, cur);
+      outEff.textContent = CL.formatPercent(effPct, 2);
+
+      barNet.style.width = `${keepPct.toFixed(2)}%`;
+      barFee.style.width = `${Math.min(100, effPct).toFixed(2)}%`;
+      legNet.textContent = CL.formatPercent(keepPct, 1);
+      legFee.textContent = CL.formatPercent(effPct, 1);
+
+      lastSummary = [
+        `${I18N.payment.outGross}: ${CL.formatMoney(gross, cur)}`,
+        `${I18N.payment.outTotalFee}: ${CL.formatMoney(totalFee, cur)} (${CL.formatPercent(effPct, 2)})`,
+        `${I18N.payment.outNet}: ${CL.formatMoney(net, cur)}`,
+      ].join(' | ');
+
+      if (syncUrl) CL.syncUrlState(getState());
+    }
+
+    const params = CL.readParams();
+    if (params.has('cur')) currency.set(params.get('cur').toUpperCase(), true);
+    if (params.has('preset') && PRESETS[params.get('preset')]) elPreset.value = params.get('preset');
+    if (params.has('amt')) elAmount.value = params.get('amt');
+    if (params.has('pct')) elPct.value = params.get('pct');
+    if (params.has('fix')) elFixed.value = params.get('fix');
+    if (params.has('fx')) elFx.value = params.get('fx');
+    setMode(params.get('mode') === 'reverse' ? 'reverse' : 'forward', false);
+
+    shell.querySelectorAll('[data-pay-mode]').forEach((btn) => {
+      btn.addEventListener('click', () => setMode(btn.getAttribute('data-pay-mode'), true));
+    });
+
+    elPreset.addEventListener('change', () => {
+      const p = PRESETS[elPreset.value];
+      if (!p) return;
+      elPct.value = p.pct;
+      elFixed.value = p.fixed;
+      elFx.value = p.fxPct;
+      calculate(true);
+    });
+
+    [elAmount, elPct, elFixed, elFx].forEach((input) => {
+      input.addEventListener('input', () => calculate(true));
+    });
+
+    document.getElementById('pay-copy-result').addEventListener('click', () => {
+      CL.copyText(lastSummary, I18N.copiedResult);
+    });
+    document.getElementById('pay-copy-link').addEventListener('click', () => {
+      CL.copyText(CL.buildShareUrl(getState()), I18N.copiedLink);
+    });
+    document.getElementById('pay-reset').addEventListener('click', () => {
+      currency.set(defaultCurrency, true);
+      elPreset.value = defaultPreset || initial.preset;
+      elAmount.value = initial.amount;
+      elPct.value = initial.pct;
+      elFixed.value = initial.fixed;
+      elFx.value = initial.fx;
+      setMode('forward', true);
+    });
+  }
+
+  /* ------------------------------------------------------------------------
+     7. ROAS <-> ACOS & Break-Even Ads Calculator
+     ------------------------------------------------------------------------ */
+  function initRoas(shell) {
+    const CL = window.CalcLedger;
+    const I18N = CL.I18N;
+    const defaultCurrency = shell.getAttribute('data-default-currency') || 'EUR';
+
+    const elSpend = document.getElementById('roas-spend');
+    const elRev = document.getElementById('roas-rev');
+    const elMargin = document.getElementById('roas-margin');
+
+    const heroBox = document.getElementById('roas-hero-box');
+    const outRoas = document.getElementById('roas-out-roas');
+    const outAcos = document.getElementById('roas-out-acos');
+    const outBeRoas = document.getElementById('roas-out-be-roas');
+    const outBeAcos = document.getElementById('roas-out-be-acos');
+    const outProfit = document.getElementById('roas-out-profit');
+    const outNetMargin = document.getElementById('roas-out-net-margin');
+    const barCogs = document.getElementById('roas-bar-cogs');
+    const barAds = document.getElementById('roas-bar-ads');
+    const barProfit = document.getElementById('roas-bar-profit');
+    const elLegend = document.getElementById('roas-legend');
+
+    let lastSummary = '';
+    const currency = bindCurrencySwitcher(shell, defaultCurrency, () => calculate(true));
+
+    function getState() {
+      return {
+        cur: currency.get(),
+        spend: elSpend.value,
+        rev: elRev.value,
+        margin: elMargin.value,
+      };
+    }
+
+    function calculate(syncUrl) {
+      const spend = Math.max(0, CL.parseNum(elSpend.value, 0));
+      const rev = Math.max(0, CL.parseNum(elRev.value, 0));
+      const preAdMargin = Math.max(1, Math.min(100, CL.parseNum(elMargin.value, 40)));
+
+      const roas = spend > 0 ? rev / spend : 0;
+      const acos = rev > 0 ? (spend / rev) * 100 : 0;
+      const beRoas = 100 / preAdMargin;
+      const beAcos = preAdMargin;
+
+      const grossBeforeAds = rev * (preAdMargin / 100);
+      const cogs = rev - grossBeforeAds;
+      const netProfit = grossBeforeAds - spend;
+      const netMargin = rev > 0 ? (netProfit / rev) * 100 : 0;
+
+      const cur = currency.get();
+      heroBox.classList.toggle('is-loss', netProfit < 0);
+      outRoas.textContent = `${roas.toFixed(2)}×`;
+      outAcos.textContent = CL.formatPercent(acos, 2);
+      outBeRoas.textContent = `${beRoas.toFixed(2)}×`;
+      outBeAcos.textContent = CL.formatPercent(beAcos, 2);
+      outProfit.textContent = CL.formatMoney(netProfit, cur);
+      outNetMargin.textContent = CL.formatPercent(netMargin, 2);
+
+      const denom = Math.max(rev, cogs + spend + Math.max(0, netProfit), 0.01);
+      barCogs.style.width = `${((cogs / denom) * 100).toFixed(2)}%`;
+      barAds.style.width = `${((spend / denom) * 100).toFixed(2)}%`;
+      barProfit.style.width = `${((Math.max(0, netProfit) / denom) * 100).toFixed(2)}%`;
+
+      const cogsPct = rev > 0 ? (cogs / rev) * 100 : 0;
+      elLegend.innerHTML = [
+        `<span><i class="dot seg-navy"></i>${I18N.roas.barCogs} <strong class="num">${CL.formatPercent(cogsPct, 1)}</strong></span>`,
+        `<span><i class="dot seg-terra"></i>${I18N.roas.barAds} <strong class="num">${CL.formatPercent(acos, 1)}</strong></span>`,
+        `<span><i class="dot ${netProfit >= 0 ? 'seg-emerald' : 'seg-terra'}"></i>${netProfit >= 0 ? I18N.roas.barProfit : I18N.roas.barLoss} <strong class="num">${CL.formatPercent(netMargin, 1)}</strong></span>`,
+      ].join('');
+
+      document.querySelectorAll('[data-apply-roas]').forEach((row) => {
+        const rowR = CL.parseNum(row.getAttribute('data-apply-roas'), -1);
+        row.classList.toggle('is-selected', Math.abs(rowR - roas) < 0.05);
+      });
+
+      lastSummary = [
+        `ROAS: ${roas.toFixed(2)}×`,
+        `ACOS: ${CL.formatPercent(acos, 2)}`,
+        `${I18N.roas.outBeRoas}: ${beRoas.toFixed(2)}×`,
+        `${I18N.roas.outNetProfit}: ${CL.formatMoney(netProfit, cur)}`,
+      ].join(' | ');
+
+      if (syncUrl) CL.syncUrlState(getState());
+    }
+
+    const params = CL.readParams();
+    if (params.has('cur')) currency.set(params.get('cur').toUpperCase(), true);
+    if (params.has('spend')) elSpend.value = params.get('spend');
+    if (params.has('rev')) elRev.value = params.get('rev');
+    if (params.has('margin')) elMargin.value = params.get('margin');
+
+    calculate(false);
+
+    [elSpend, elRev, elMargin].forEach((input) => {
+      input.addEventListener('input', () => calculate(true));
+    });
+
+    document.querySelectorAll('[data-apply-roas]').forEach((row) => {
+      const activate = () => {
+        const targetRoas = CL.parseNum(row.getAttribute('data-apply-roas'), 4);
+        const spend = Math.max(100, CL.parseNum(elSpend.value, 1000));
+        elSpend.value = spend;
+        elRev.value = (spend * targetRoas).toFixed(2).replace(/\.00$/, '');
+        calculate(true);
+        shell.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      };
+      row.addEventListener('click', activate);
+      row.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          activate();
+        }
+      });
+    });
+
+    document.getElementById('roas-copy-result').addEventListener('click', () => {
+      CL.copyText(lastSummary, I18N.copiedResult);
+    });
+    document.getElementById('roas-copy-link').addEventListener('click', () => {
+      CL.copyText(CL.buildShareUrl(getState()), I18N.copiedLink);
+    });
+    document.getElementById('roas-reset').addEventListener('click', () => {
+      currency.set(defaultCurrency, true);
+      elSpend.value = '1000';
+      elRev.value = '4000';
+      elMargin.value = '40';
+      calculate(true);
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     const shell = document.querySelector('[data-calc]');
     if (!shell) return;
     const type = shell.getAttribute('data-calc');
     if (type === 'vat') initVat(shell);
     else if (type === 'marketplace') initMarketplace(shell);
+    else if (type === 'payment') initPayment(shell);
+    else if (type === 'roas') initRoas(shell);
     else if (type === 'margin') initMargin(shell);
     else if (type === 'freelance') initFreelance(shell);
     else if (type === 'compound') initCompound(shell);

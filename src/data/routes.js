@@ -16,6 +16,12 @@ export const VAT_COUNTRY_KEYS = [
   'netherlands',
   'spain',
   'italy',
+  'czechia',
+  'belgium',
+  'sweden',
+  'portugal',
+  'ireland',
+  'denmark',
 ];
 
 export const MARKETPLACE_KEYS = [
@@ -27,6 +33,8 @@ export const MARKETPLACE_KEYS = [
   'allegro',
 ];
 
+export const PAYMENT_PROVIDER_KEYS = ['paypal', 'stripe'];
+
 const COUNTRY_SLUGS = {
   germany: { en: 'germany', de: 'deutschland', pl: 'niemcy' },
   austria: { en: 'austria', de: 'oesterreich', pl: 'austria' },
@@ -37,6 +45,12 @@ const COUNTRY_SLUGS = {
   netherlands: { en: 'netherlands', de: 'niederlande', pl: 'holandia' },
   spain: { en: 'spain', de: 'spanien', pl: 'hiszpania' },
   italy: { en: 'italy', de: 'italien', pl: 'wlochy' },
+  czechia: { en: 'czechia', de: 'tschechien', pl: 'czechy' },
+  belgium: { en: 'belgium', de: 'belgien', pl: 'belgia' },
+  sweden: { en: 'sweden', de: 'schweden', pl: 'szwecja' },
+  portugal: { en: 'portugal', de: 'portugal', pl: 'portugalia' },
+  ireland: { en: 'ireland', de: 'irland', pl: 'irlandia' },
+  denmark: { en: 'denmark', de: 'daenemark', pl: 'dania' },
 };
 
 const MARKETPLACE_SLUGS = {
@@ -46,6 +60,11 @@ const MARKETPLACE_SLUGS = {
   shopify: { en: 'shopify', de: 'shopify', pl: 'shopify' },
   upwork: { en: 'upwork', de: 'upwork', pl: 'upwork' },
   allegro: { en: 'allegro', de: 'allegro', pl: 'allegro' },
+};
+
+const PAYMENT_SLUGS = {
+  paypal: { en: 'paypal', de: 'paypal', pl: 'paypal' },
+  stripe: { en: 'stripe', de: 'stripe', pl: 'stripe' },
 };
 
 export const ROUTES = {
@@ -63,6 +82,16 @@ export const ROUTES = {
     en: '/marketplace-fee-calculator/',
     de: '/de/marktplatz-gebuehren-rechner/',
     pl: '/pl/kalkulator-prowizji-marketplace/',
+  },
+  payment: {
+    en: '/payment-fee-calculator/',
+    de: '/de/zahlungsgebuehren-rechner/',
+    pl: '/pl/kalkulator-prowizji-platniczych/',
+  },
+  roas: {
+    en: '/roas-acos-calculator/',
+    de: '/de/roas-acos-rechner/',
+    pl: '/pl/kalkulator-roas-acos/',
   },
   margin: {
     en: '/profit-margin-calculator/',
@@ -114,6 +143,14 @@ for (const key of MARKETPLACE_KEYS) {
     en: `/marketplace-fee-calculator/${MARKETPLACE_SLUGS[key].en}/`,
     de: `/de/marktplatz-gebuehren-rechner/${MARKETPLACE_SLUGS[key].de}/`,
     pl: `/pl/kalkulator-prowizji-marketplace/${MARKETPLACE_SLUGS[key].pl}/`,
+  };
+}
+
+for (const key of PAYMENT_PROVIDER_KEYS) {
+  ROUTES[`payment:${key}`] = {
+    en: `/payment-fee-calculator/${PAYMENT_SLUGS[key].en}/`,
+    de: `/de/zahlungsgebuehren-rechner/${PAYMENT_SLUGS[key].de}/`,
+    pl: `/pl/kalkulator-prowizji-platniczych/${PAYMENT_SLUGS[key].pl}/`,
   };
 }
 

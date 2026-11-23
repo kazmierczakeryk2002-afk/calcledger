@@ -2,6 +2,7 @@ import { getRoutePath } from '../data/routes.js';
 import { getI18n, escapeHtml } from '../data/i18n.js';
 import { VAT_COUNTRIES } from '../data/vat-countries.js';
 import { MARKETPLACES } from '../data/marketplaces.js';
+import { PAYMENT_PROVIDERS } from '../data/payment-providers.js';
 import {
   renderLayout,
   renderAdSlot,
@@ -16,6 +17,8 @@ export function renderHomePage(lang) {
   const coreTools = [
     { key: 'vat', tag: 'VAT / MwSt', title: t.vat.cardTitle, desc: t.vat.cardDesc },
     { key: 'marketplace', tag: 'E-Commerce', title: t.marketplace.cardTitle, desc: t.marketplace.cardDesc },
+    { key: 'payment', tag: 'Payments', title: t.payment.cardTitle, desc: t.payment.cardDesc },
+    { key: 'roas', tag: 'Ads & ROAS', title: t.roas.cardTitle, desc: t.roas.cardDesc },
     { key: 'margin', tag: 'Pricing', title: t.margin.cardTitle, desc: t.margin.cardDesc },
     { key: 'freelance', tag: 'B2B', title: t.freelance.cardTitle, desc: t.freelance.cardDesc },
     { key: 'compound', tag: 'ROI & Growth', title: t.compound.cardTitle, desc: t.compound.cardDesc },
@@ -40,12 +43,19 @@ export function renderHomePage(lang) {
     </a>`
   ).join('');
 
-  const mpLinksHtml = MARKETPLACES.map(
-    (m) => `<a class="chip-card chip-card--mp" href="${escapeHtml(getRoutePath(`marketplace:${m.key}`, lang))}">
-      <span class="chip-card__name">${escapeHtml(m.name)}</span>
-      <span class="chip-card__desc">${escapeHtml(m.feeSummary[lang])}</span>
-    </a>`
-  ).join('');
+  const mpLinksHtml =
+    MARKETPLACES.map(
+      (m) => `<a class="chip-card chip-card--mp" href="${escapeHtml(getRoutePath(`marketplace:${m.key}`, lang))}">
+        <span class="chip-card__name">${escapeHtml(m.name)}</span>
+        <span class="chip-card__desc">${escapeHtml(m.feeSummary[lang])}</span>
+      </a>`
+    ).join('') +
+    PAYMENT_PROVIDERS.map(
+      (p) => `<a class="chip-card chip-card--mp" href="${escapeHtml(getRoutePath(`payment:${p.key}`, lang))}">
+        <span class="chip-card__name">${escapeHtml(p.name)}</span>
+        <span class="chip-card__desc">${escapeHtml(p.feeSummary[lang])}</span>
+      </a>`
+    ).join('');
 
   const whyHtml = t.home.whyItems
     .map(

@@ -146,10 +146,14 @@ export function renderRelatedCalculators(currentTool, lang, t) {
   const cards = [
     { key: 'vat', title: t.vat.cardTitle, desc: t.vat.cardDesc, badge: 'VAT / MwSt' },
     { key: 'marketplace', title: t.marketplace.cardTitle, desc: t.marketplace.cardDesc, badge: 'E-Commerce' },
+    { key: 'payment', title: t.payment.cardTitle, desc: t.payment.cardDesc, badge: 'Payments' },
+    { key: 'roas', title: t.roas.cardTitle, desc: t.roas.cardDesc, badge: 'Ads & ROAS' },
     { key: 'margin', title: t.margin.cardTitle, desc: t.margin.cardDesc, badge: 'Pricing' },
     { key: 'freelance', title: t.freelance.cardTitle, desc: t.freelance.cardDesc, badge: 'B2B' },
     { key: 'compound', title: t.compound.cardTitle, desc: t.compound.cardDesc, badge: 'ROI' },
-  ].filter((c) => c.key !== currentTool);
+  ]
+    .filter((c) => c.key !== currentTool)
+    .slice(0, 4);
 
   const html = cards
     .map(
@@ -202,6 +206,8 @@ export function renderLayout({
   const navItems = [
     { key: 'vat', label: t.nav.vat },
     { key: 'marketplace', label: t.nav.marketplace },
+    { key: 'payment', label: t.nav.payment },
+    { key: 'roas', label: t.nav.roas },
     { key: 'margin', label: t.nav.margin },
     { key: 'freelance', label: t.nav.freelance },
     { key: 'compound', label: t.nav.compound },
@@ -222,16 +228,19 @@ export function renderLayout({
     })
     .join('');
 
-  const vatFooterLinks = VAT_COUNTRIES.slice(0, 6)
+  const vatFooterLinks = VAT_COUNTRIES.slice(0, 7)
     .map(
       (c) =>
         `<li><a href="${escapeHtml(getRoutePath(`vat:${c.key}`, lang))}">${escapeHtml(c.names[lang])} (${c.standardRate}%)</a></li>`
     )
     .join('');
 
-  const mpFooterLinks = MARKETPLACES.map(
-    (m) => `<li><a href="${escapeHtml(getRoutePath(`marketplace:${m.key}`, lang))}">${escapeHtml(m.name)}</a></li>`
-  ).join('');
+  const mpFooterLinks =
+    MARKETPLACES.map(
+      (m) => `<li><a href="${escapeHtml(getRoutePath(`marketplace:${m.key}`, lang))}">${escapeHtml(m.name)}</a></li>`
+    ).join('') +
+    `<li><a href="${escapeHtml(getRoutePath('payment:paypal', lang))}">PayPal</a></li>` +
+    `<li><a href="${escapeHtml(getRoutePath('payment:stripe', lang))}">Stripe</a></li>`;
 
   const clientI18n = {
     lang,
@@ -259,6 +268,25 @@ export function renderLayout({
       segVat: t.marketplace.segVat,
       segProfit: t.marketplace.segProfit,
       segLoss: t.marketplace.segLoss,
+    },
+    payment: {
+      amountLabelForward: t.payment.amountLabelForward,
+      amountLabelReverse: t.payment.amountLabelReverse,
+      outPrimaryForward: t.payment.outPrimaryForward,
+      outPrimaryReverse: t.payment.outPrimaryReverse,
+      outGross: t.payment.outGross,
+      outTotalFee: t.payment.outTotalFee,
+      outNet: t.payment.outNet,
+    },
+    roas: {
+      outRoas: t.roas.outRoas,
+      outAcos: t.roas.outAcos,
+      outBeRoas: t.roas.outBeRoas,
+      outNetProfit: t.roas.outNetProfit,
+      barCogs: t.roas.barCogs,
+      barAds: t.roas.barAds,
+      barProfit: t.roas.barProfit,
+      barLoss: t.roas.barLoss,
     },
     margin: {
       outPrice: t.margin.outPrice,

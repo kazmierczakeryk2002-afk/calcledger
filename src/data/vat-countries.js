@@ -819,6 +819,543 @@ export const VAT_COUNTRIES = [
       },
     },
   },
+  {
+    key: 'czechia',
+    code: 'CZ',
+    standardRate: 21,
+    reducedRates: [12, 0],
+    currency: 'EUR',
+    localTaxName: 'Daň z přidané hodnoty (DPH)',
+    vatIdFormat: 'CZ + 8–10 digits',
+    names: { en: 'Czechia', de: 'Tschechien', pl: 'Czechy' },
+    seo: {
+      en: {
+        title: 'Czechia VAT Calculator (21% & 12% DPH) | CalcLedger',
+        description: 'Calculate Czech VAT (DPH) at 21% standard or 12% unified reduced rate. Fast net-to-gross and reverse VAT calculation in EUR or PLN.',
+        h1: 'Czechia VAT Calculator (21% & 12% DPH)',
+        subtitle: 'Instant net-to-gross and gross-to-net Czech DPH calculator reflecting the 21% standard rate and unified 12% reduced rate.',
+        intro: 'Since 2024, Czechia streamlined its VAT (DPH) structure to two main rates: a 21% standard rate for general goods and services, and a single 12% reduced rate covering groceries, medicines, hotels, and public transport (while printed & e-books are 0% exempt with credit).',
+        rateNotes: [
+          { rate: '21%', label: 'Standard rate (Základní sazba)', examples: 'Electronics, IT & consulting services, clothing, beverages, standard retail.' },
+          { rate: '12%', label: 'Reduced rate (Snížená sazba)', examples: 'Foodstuffs, pharmaceuticals, hotel stays, catering food, passenger transport, housing.' },
+          { rate: '0%', label: 'Zero-rated / exempt', examples: 'Books & e-books, intra-EU B2B supplies (Reverse Charge), exports outside the EU.' },
+        ],
+        faqs: [
+          {
+            q: 'How do I remove 21% Czech DPH from a gross total?',
+            a: 'Divide the gross amount by 1.21 (Net = Gross ÷ 1.21). Subtract Net from Gross to obtain the exact 21% Czech DPH portion.',
+          },
+          {
+            q: 'Why does Czechia now have 12% instead of 10% and 15% VAT?',
+            a: 'Czechia merged its former 10% and 15% reduced VAT tiers into a single 12% reduced rate starting January 1, 2024.',
+          },
+          {
+            q: 'What is the Czech VAT ID (DIČ) format?',
+            a: 'Czech VAT numbers start with CZ followed by 8, 9, or 10 digits.',
+          },
+        ],
+      },
+      de: {
+        title: 'MwSt Rechner Tschechien (21% & 12% DPH) | CalcLedger',
+        description: 'Tschechische Mehrwertsteuer (DPH) mit 21% Normalsatz oder 12% ermäßigtem Satz berechnen. Schneller Netto-Brutto-Rechner für EUR und PLN.',
+        h1: 'MwSt-Rechner Tschechien (21 % & 12 % DPH)',
+        subtitle: 'Aktueller Netto-Brutto-Rechner für die tschechische DPH mit 21 % Regelsteuersatz und einheitlichem 12 % ermäßigtem Satz.',
+        intro: 'Tschechien wendet seit 2024 zwei Haupt-Mehrwertsteuersätze (DPH) an: 21 % Regelsteuersatz für allgemeine Waren und Dienstleistungen sowie 12 % ermäßigten Satz für Lebensmittel, Medikamente, Hotels und Personenverkehr (Bücher unterliegen 0 %).',
+        rateNotes: [
+          { rate: '21 %', label: 'Regelsteuersatz (Základní)', examples: 'Elektronik, Beratung, Software, Kleidung, allgemeine Handelswaren.' },
+          { rate: '12 %', label: 'Ermäßigter Satz (Snížená)', examples: 'Lebensmittel, Medikamente, Hotellerie, Gastronomie-Speisen, Wohnungsbau.' },
+          { rate: '0 %', label: 'Nullsatz / steuerfrei', examples: 'Bücher & E-Books, innergemeinschaftliche B2B-Lieferungen (Reverse Charge).' },
+        ],
+        faqs: [
+          {
+            q: 'Wie rechne ich 21 % tschechische DPH aus Brutto heraus?',
+            a: 'Teilen Sie den Bruttobetrag durch 1,21, um den Nettobetrag zu bestimmen. Die Differenz ergibt genau die enthaltene DPH.',
+          },
+          {
+            q: 'Seit wann gilt in Tschechien der einheitliche Satz von 12 %?',
+            a: 'Seit dem 1. Januar 2024 wurden die früheren ermäßigten Sätze von 10 % und 15 % zu einem einheitlichen 12-%-Satz zusammengefasst.',
+          },
+          {
+            q: 'Wie lautet das Format der tschechischen USt-IdNr. (DIČ)?',
+            a: 'Die tschechische USt-IdNr. beginnt mit CZ gefolgt von 8 bis 10 Ziffern.',
+          },
+        ],
+      },
+      pl: {
+        title: 'Kalkulator VAT Czechy (21% i 12% DPH) | CalcLedger',
+        description: 'Oblicz czeski podatek VAT (DPH) dla stawki podstawowej 21% i obniżonej 12%. Szybkie przeliczanie netto i brutto dla faktur z Czech.',
+        h1: 'Kalkulator VAT Czechy (21% i 12% DPH)',
+        subtitle: 'Przeliczaj czeskie faktury netto ↔ brutto dla stawki podstawowej 21% DPH oraz ujednoliconej stawki obniżonej 12%.',
+        intro: 'W Czechach podatek VAT nosi nazwę DPH (Daň z přidané hodnoty). Od 2024 r. obowiązują dwie główne stawki: 21% podstawowa oraz jednolita 12% obniżona (m.in. żywność, leki, hotele i gastronomia; książki objęte są stawką 0%).',
+        rateNotes: [
+          { rate: '21%', label: 'Stawka podstawowa (Základní)', examples: 'Większość towarów, elektronika, usługi IT, B2B, doradztwo i odzież.' },
+          { rate: '12%', label: 'Stawka obniżona (Snížená)', examples: 'Żywność, leki, usługi hotelowe, gastronomia, transport publiczny, budownictwo mieszkaniowe.' },
+          { rate: '0%', label: 'Stawka 0% / zwolnienie', examples: 'Książki i e-booki, dostawy wewnątrzwspólnotowe B2B (Reverse Charge).' },
+        ],
+        faqs: [
+          {
+            q: 'Jak obliczyć netto z czeskiej faktury brutto z 21% DPH?',
+            a: 'Podziel kwotę brutto przez 1,21 (Netto = Brutto ÷ 1,21). Różnica między kwotą brutto a netto to dokładnie 21% czeskiego podatku DPH.',
+          },
+          {
+            q: 'Dlaczego w Czechach obowiązuje 12% zamiast dawnych 10% i 15%?',
+            a: 'Od 1 stycznia 2024 r. Czechy połączyły wcześniejsze progi 10% i 15% w jedną obniżoną stawkę 12% DPH.',
+          },
+          {
+            q: 'Jak wygląda czeski numer VAT-UE (DIČ)?',
+            a: 'Czeski numer VAT-UE składa się z prefiksu CZ oraz od 8 do 10 cyfr.',
+          },
+        ],
+      },
+    },
+  },
+  {
+    key: 'belgium',
+    code: 'BE',
+    standardRate: 21,
+    reducedRates: [12, 6, 0],
+    currency: 'EUR',
+    localTaxName: 'BTW / TVA (Belasting over de toegevoegde waarde)',
+    vatIdFormat: 'BE + 10 digits (0...)',
+    names: { en: 'Belgium', de: 'Belgien', pl: 'Belgia' },
+    seo: {
+      en: {
+        title: 'Belgium VAT Calculator (21%, 12% & 6% BTW/TVA) | CalcLedger',
+        description: 'Calculate Belgian VAT (BTW / TVA) at 21% standard, 12% intermediate, or 6% reduced rates in EUR. Instant net-to-gross and reverse math.',
+        h1: 'Belgium VAT Calculator (21%, 12% & 6% BTW)',
+        subtitle: 'Calculate Belgian BTW / TVA quickly with presets for 21% standard, 12% restaurant/housing, and 6% essential goods rates.',
+        intro: 'Belgium charges a 21% standard VAT rate (BTW in Dutch, TVA in French), a 12% intermediate rate for restaurant meals and social housing, and a 6% reduced rate for basic foodstuffs, water, medicines, books, and residential renovations.',
+        rateNotes: [
+          { rate: '21%', label: 'Standard rate', examples: 'General goods, electronics, consulting, SaaS, clothing, restaurant beverages.' },
+          { rate: '12%', label: 'Intermediate rate', examples: 'Restaurant & catering food services, social housing, agricultural supplies.' },
+          { rate: '6%', label: 'Reduced rate', examples: 'Basic food, tap water, medicines, books, hotels, passenger transport, home renovations.' },
+        ],
+        faqs: [
+          {
+            q: 'How do I extract 21% Belgian VAT from a gross invoice?',
+            a: 'Divide the gross amount by 1.21 (Net = Gross ÷ 1.21). The BTW/TVA share equals roughly 17.36% of the gross price.',
+          },
+          {
+            q: 'What qualifies for Belgium’s 6% reduced VAT rate?',
+            a: 'Basic groceries, medicines, books, hotels, residential electricity/gas, passenger transport, and renovations of older private homes typically qualify for 6%.',
+          },
+          {
+            q: 'What is the format of a Belgian VAT number?',
+            a: 'Belgian VAT numbers start with BE followed by 10 digits (usually beginning with 0 or 1, e.g., BE0123456789).',
+          },
+        ],
+      },
+      de: {
+        title: 'MwSt Rechner Belgien (21%, 12% & 6% BTW/TVA) | CalcLedger',
+        description: 'Belgische Mehrwertsteuer (BTW / TVA) mit 21% Standardsatz, 12% oder 6% ermäßigtem Satz in EUR berechnen. Netto-Brutto-Rechner live.',
+        h1: 'MwSt-Rechner Belgien (21 %, 12 % & 6 % BTW)',
+        subtitle: 'Sofortiger Netto-Brutto-Rechner für die belgische BTW / TVA mit Voreinstellungen für 21 %, 12 % und 6 %.',
+        intro: 'In Belgien gilt der reguläre Mehrwertsteuersatz (BTW / TVA) von 21 %. Ergänzend bestehen 12 % (u. a. Speisen in Restaurants, sozialer Wohnungsbau) sowie 6 % für Grundnahrungsmittel, Bücher, Medikamente, Hotels und Renovierungen.',
+        rateNotes: [
+          { rate: '21 %', label: 'Normalsatz', examples: 'Allgemeine Waren, Elektronik, Beratung, Software, Kleidung.' },
+          { rate: '12 %', label: 'Zwischensatz', examples: 'Restaurantspeisen, sozialer Wohnungsbau, bestimmte Agrarprodukte.' },
+          { rate: '6 %', label: 'Ermäßigter Satz', examples: 'Grundnahrungsmittel, Wasser, Medikamente, Bücher, Hotels, Hausrenovierungen.' },
+        ],
+        faqs: [
+          {
+            q: 'Wie rechne ich 21 % belgische BTW aus dem Bruttobetrag heraus?',
+            a: 'Teilen Sie den Bruttobetrag durch 1,21, um den Nettobetrag in EUR zu erhalten.',
+          },
+          {
+            q: 'Wann gilt in Belgien der 6-%-Steuersatz?',
+            a: 'Unter anderem für Grundnahrungsmittel, Medikamente, Bücher, Hotels, öffentlichen Verkehr sowie Renovierungen älterer Wohngebäude.',
+          },
+          {
+            q: 'Wie sieht eine belgische USt-IdNr. aus?',
+            a: 'Sie besteht aus dem Präfix BE gefolgt von 10 Ziffern (z. B. BE0123456789).',
+          },
+        ],
+      },
+      pl: {
+        title: 'Kalkulator VAT Belgia (21%, 12% i 6% BTW/TVA) | CalcLedger',
+        description: 'Oblicz belgijski podatek VAT (BTW / TVA) dla stawki podstawowej 21% oraz obniżonych 12% i 6%. Przeliczanie netto i brutto w EUR.',
+        h1: 'Kalkulator VAT Belgia (21%, 12% i 6% BTW)',
+        subtitle: 'Błyskawiczny kalkulator belgijskiego podatku BTW / TVA w EUR dla stawek 21%, 12% oraz 6%.',
+        intro: 'W Belgii podatek VAT (BTW / TVA) wynosi podstawowo 21%. Stawka pośrednia 12% obejmuje m.in. posiłki w restauracjach i budownictwo społeczne, natomiast obniżona 6% dotyczy podstawowej żywności, wody, leków, książek, hoteli i remontów mieszkań.',
+        rateNotes: [
+          { rate: '21%', label: 'Stawka podstawowa', examples: 'Większość towarów, elektronika, usługi IT, B2B, doradztwo i odzież.' },
+          { rate: '12%', label: 'Stawka pośrednia', examples: 'Usługi gastronomiczne (posiłki), budownictwo socjalne, wybrane produkty rolne.' },
+          { rate: '6%', label: 'Stawka obniżona', examples: 'Podstawowa żywność, leki, książki, hotele, transport pasażerski, remonty starszych domów.' },
+        ],
+        faqs: [
+          {
+            q: 'Jak obliczyć kwotę netto z belgijskiej faktury brutto (21% BTW)?',
+            a: 'Podziel kwotę brutto przez 1,21 (Netto = Brutto ÷ 1,21). Podatek stanowi ok. 17,36% kwoty brutto.',
+          },
+          {
+            q: 'Kiedy w Belgii stosuje się 6% VAT na remonty?',
+            a: 'Stawka 6% obejmuje prace remontowe w prywatnych budynkach mieszkalnych spełniających kryterium wieku budynku (zazwyczaj powyżej 10 lat).',
+          },
+          {
+            q: 'Jaki format ma belgijski numer VAT-UE?',
+            a: 'Belgijski numer VAT-UE składa się z prefiksu BE i 10 cyfr (np. BE0123456789).',
+          },
+        ],
+      },
+    },
+  },
+  {
+    key: 'sweden',
+    code: 'SE',
+    standardRate: 25,
+    reducedRates: [12, 6, 0],
+    currency: 'EUR',
+    localTaxName: 'Mervärdesskatt (Moms)',
+    vatIdFormat: 'SE + 12 digits (ends 01)',
+    names: { en: 'Sweden', de: 'Schweden', pl: 'Szwecja' },
+    seo: {
+      en: {
+        title: 'Sweden VAT Calculator (25%, 12% & 6% Moms) | CalcLedger',
+        description: 'Calculate Swedish VAT (Moms) at 25% standard, 12% food/hotels, or 6% books/transport rates. Instant net-to-gross and reverse calculation.',
+        h1: 'Sweden VAT Calculator (25%, 12% & 6% Moms)',
+        subtitle: 'Fast net-to-gross and gross-to-net Swedish Moms calculator with 25% standard, 12% reduced, and 6% cultural/transport presets.',
+        intro: 'Sweden levies a 25% standard VAT (Moms) rate on most goods and commercial services. Reduced rates apply at 12% (groceries, restaurants, hotels, repair services) and 6% (books, newspapers, passenger transport, cultural events).',
+        rateNotes: [
+          { rate: '25%', label: 'Standard rate (Standardskattesats)', examples: 'Most retail goods, digital services, consulting, electronics, apparel.' },
+          { rate: '12%', label: 'Reduced rate', examples: 'Foodstuffs, restaurant & catering services, hotel accommodation, minor repairs.' },
+          { rate: '6%', label: 'Super-reduced rate', examples: 'Printed & digital books, newspapers, domestic passenger transport, concerts & sports.' },
+        ],
+        faqs: [
+          {
+            q: 'How do I remove 25% Swedish Moms from a gross price?',
+            a: 'Divide the gross amount by 1.25 (or multiply by 0.80) to find the net price. At 25% VAT, Moms equals exactly 20% (one-fifth) of the gross price.',
+          },
+          {
+            q: 'What is covered by Sweden’s 12% and 6% Moms rates?',
+            a: 'Food, restaurants, and hotels are taxed at 12%, while books, newspapers, cultural admission, and public passenger transport are taxed at 6%.',
+          },
+          {
+            q: 'What does a Swedish VAT ID (Momsregistreringsnummer) look like?',
+            a: 'Swedish VAT IDs consist of SE followed by 12 digits, typically ending in 01 (e.g., SE556012345601).',
+          },
+        ],
+      },
+      de: {
+        title: 'MwSt Rechner Schweden (25%, 12% & 6% Moms) | CalcLedger',
+        description: 'Schwedische Mehrwertsteuer (Moms) mit 25% Standardsatz, 12% (Lebensmittel/Hotels) oder 6% (Bücher/Verkehr) live umrechnen.',
+        h1: 'MwSt-Rechner Schweden (25 %, 12 % & 6 % Moms)',
+        subtitle: 'Präziser Netto-Brutto-Rechner für die schwedische Moms mit 25 % Normalsatz sowie 12 % und 6 % ermäßigten Sätzen.',
+        intro: 'In Schweden beträgt der reguläre Mehrwertsteuersatz (Moms) 25 %. Ermäßigte Sätze gelten mit 12 % (Lebensmittel, Gastronomie, Hotels) sowie 6 % (Bücher, Zeitungen, Personenverkehr und Kulturveranstaltungen).',
+        rateNotes: [
+          { rate: '25 %', label: 'Regelsteuersatz', examples: 'Allgemeine Waren, Elektronik, Beratung, Software und Dienstleistungen.' },
+          { rate: '12 %', label: 'Ermäßigter Satz', examples: 'Lebensmittel, Restaurants, Hotels, kleine Reparaturen.' },
+          { rate: '6 %', label: 'Stark ermäßigter Satz', examples: 'Bücher, E-Books, Zeitungen, Personenverkehr, Kultur- und Sporttickets.' },
+        ],
+        faqs: [
+          {
+            q: 'Wie rechne ich 25 % schwedische Moms aus dem Bruttobetrag heraus?',
+            a: 'Teilen Sie den Bruttobetrag durch 1,25 (bzw. multiplizieren Sie mit 0,80). Die Moms entspricht exakt 20 % des Bruttobetrags.',
+          },
+          {
+            q: 'Wofür gelten in Schweden 12 % und 6 % Moms?',
+            a: '12 % gelten für Lebensmittel, Restaurants und Hotels; 6 % für Bücher, Presse, öffentlichen Verkehr sowie Kulturveranstaltungen.',
+          },
+          {
+            q: 'Wie ist eine schwedische Moms-Nummer aufgebaut?',
+            a: 'Sie beginnt mit SE gefolgt von 12 Ziffern und endet in der Regel auf 01.',
+          },
+        ],
+      },
+      pl: {
+        title: 'Kalkulator VAT Szwecja (25%, 12% i 6% Moms) | CalcLedger',
+        description: 'Oblicz szwedzki podatek VAT (Moms) dla stawki podstawowej 25% oraz obniżonych 12% i 6%. Szybkie przeliczanie netto i brutto.',
+        h1: 'Kalkulator VAT Szwecja (25%, 12% i 6% Moms)',
+        subtitle: 'Szybki kalkulator szwedzkiego podatku Moms dla stawki podstawowej 25% oraz obniżonych 12% i 6%.',
+        intro: 'W Szwecji podatek VAT (Moms) wynosi standardowo 25%. Obniżona stawka 12% obejmuje żywność, restauracje i hotele, natomiast 6% dotyczy książek, prasy, transportu pasażerskiego oraz wydarzeń kulturalnych.',
+        rateNotes: [
+          { rate: '25%', label: 'Stawka podstawowa', examples: 'Większość towarów, elektronika, usługi IT, doradztwo i handel.' },
+          { rate: '12%', label: 'Stawka obniżona', examples: 'Artykuły spożywcze, gastronomia, hotelarstwo, drobne usługi naprawcze.' },
+          { rate: '6%', label: 'Stawka superobniżona', examples: 'Książki i e-booki, prasa, transport pasażerski, bilety na kulturę i sport.' },
+        ],
+        faqs: [
+          {
+            q: 'Jak obliczyć netto ze szwedzkiej ceny brutto przy 25% Moms?',
+            a: 'Podziel kwotę brutto przez 1,25 (czyli pomnóż przez 0,80). Podatek Moms stanowi dokładnie 20% (1/5) ceny brutto.',
+          },
+          {
+            q: 'Co w Szwecji podlega stawkom 12% i 6% Moms?',
+            a: 'Stawka 12% dotyczy żywności, restauracji i hoteli, a 6% książek, gazet, transportu pasażerskiego oraz kultury.',
+          },
+          {
+            q: 'Jaki format ma szwedzki numer VAT-UE?',
+            a: 'Szwedzki numer VAT-UE składa się z prefiksu SE oraz 12 cyfr (najczęściej kończących się na 01).',
+          },
+        ],
+      },
+    },
+  },
+  {
+    key: 'portugal',
+    code: 'PT',
+    standardRate: 23,
+    reducedRates: [13, 6, 0],
+    currency: 'EUR',
+    localTaxName: 'Imposto sobre o Valor Acrescentado (IVA)',
+    vatIdFormat: 'PT + 9 digits (NIF)',
+    names: { en: 'Portugal', de: 'Portugal', pl: 'Portugalia' },
+    seo: {
+      en: {
+        title: 'Portugal VAT Calculator (23%, 13% & 6% IVA) | CalcLedger',
+        description: 'Calculate Portuguese IVA at 23% standard, 13% intermediate, or 6% reduced rates in EUR. Instant net-to-gross and reverse calculation.',
+        h1: 'Portugal VAT Calculator (23%, 13% & 6% IVA)',
+        subtitle: 'Convert Portuguese net and gross prices accurately across mainland 23%, 13%, and 6% IVA rates (plus custom Madeira/Azores rates).',
+        intro: 'Mainland Portugal applies a 23% standard VAT (IVA) rate, a 13% intermediate rate (restaurants, wine, cultural admission), and a 6% reduced rate (basic food staples, medicines, books, hotels, transport). Madeira (22%) and the Azores (16%) use lower regional standard rates.',
+        rateNotes: [
+          { rate: '23%', label: 'Standard rate (Taxa normal)', examples: 'General merchandise, electronics, consulting, SaaS, clothing.' },
+          { rate: '13%', label: 'Intermediate rate (Taxa intermédia)', examples: 'Restaurant meals, wine, musical instruments, selected agricultural tools.' },
+          { rate: '6%', label: 'Reduced rate (Taxa reduzida)', examples: 'Basic foodstuffs, medicines, printed books & e-books, hotels, public transport.' },
+        ],
+        faqs: [
+          {
+            q: 'How do I remove 23% Portuguese IVA from a gross price?',
+            a: 'Divide the gross total by 1.23 (Net = Gross ÷ 1.23). Subtract Net from Gross to find the exact 23% IVA portion.',
+          },
+          {
+            q: 'Are VAT rates different in Madeira and the Azores?',
+            a: 'Yes. Madeira and the Azores apply lower regional IVA rates (22%/12%/5% in Madeira and 16%/9%/4% in the Azores) — enter any regional rate directly in the calculator.',
+          },
+          {
+            q: 'What does a Portuguese VAT ID look like?',
+            a: 'Portuguese VAT numbers start with PT followed by the 9-digit NIF tax number.',
+          },
+        ],
+      },
+      de: {
+        title: 'MwSt Rechner Portugal (23%, 13% & 6% IVA) | CalcLedger',
+        description: 'Portugiesische Mehrwertsteuer (IVA) mit 23% Normalsatz, 13% oder 6% ermäßigtem Satz in EUR berechnen. Netto-Brutto-Rechner sofort.',
+        h1: 'MwSt-Rechner Portugal (23 %, 13 % & 6 % IVA)',
+        subtitle: 'Berechnen Sie die portugiesische IVA für das Festland (23 %, 13 %, 6 %) oder individuelle Sätze für Madeira und die Azoren.',
+        intro: 'Auf dem portugiesischen Festland gilt der reguläre IVA-Satz von 23 %, ein Zwischensatz von 13 % (u. a. Restaurants, Wein) sowie 6 % für Grundnahrungsmittel, Bücher, Medikamente und Hotels. Auf Madeira (22 %) und den Azoren (16 %) gelten niedrigere Sätze.',
+        rateNotes: [
+          { rate: '23 %', label: 'Taxa normal (Normalsatz)', examples: 'Standardwaren, Elektronik, Beratung, Software, Dienstleistungen.' },
+          { rate: '13 %', label: 'Taxa intermédia', examples: 'Restaurantleistungen, Wein, ausgewählte Kultur- und Agrargüter.' },
+          { rate: '6 %', label: 'Taxa reduzida', examples: 'Grundnahrungsmittel, Medikamente, Bücher, Hotels, Personenverkehr.' },
+        ],
+        faqs: [
+          {
+            q: 'Wie rechne ich 23 % portugiesische IVA aus dem Bruttobetrag heraus?',
+            a: 'Teilen Sie den Bruttobetrag durch 1,23, um den Nettobetrag in EUR zu bestimmen.',
+          },
+          {
+            q: 'Gelten auf Madeira und den Azoren andere IVA-Sätze?',
+            a: 'Ja, auf Madeira gilt ein Normalsatz von 22 % und auf den Azoren 16 % — Sie können diese Sätze direkt im Feld oben eingeben.',
+          },
+          {
+            q: 'Wie ist eine portugiesische USt-IdNr. aufgebaut?',
+            a: 'Sie besteht aus dem Präfix PT gefolgt von der 9-stelligen Steuernummer NIF.',
+          },
+        ],
+      },
+      pl: {
+        title: 'Kalkulator VAT Portugalia (23%, 13% i 6% IVA) | CalcLedger',
+        description: 'Oblicz portugalski podatek VAT (IVA) dla stawek 23%, 13% i 6%. Błyskawiczne przeliczanie netto i brutto w EUR.',
+        h1: 'Kalkulator VAT Portugalia (23%, 13% i 6% IVA)',
+        subtitle: 'Przeliczaj kwoty netto i brutto dla portugalskiego podatku IVA (23%, 13%, 6%) oraz stawek regionalnych Madery i Azorów.',
+        intro: 'W kontynentalnej Portugalii stawka podstawowa IVA wynosi 23%, pośrednia 13% (gastronomia, wino), a obniżona 6% (podstawowa żywność, leki, książki, hotele). Na Maderze (22%) i Azorach (16%) obowiązują niższe stawki regionalne.',
+        rateNotes: [
+          { rate: '23%', label: 'Stawka podstawowa (Normal)', examples: 'Większość towarów, elektronika, usługi IT, B2B i doradztwo.' },
+          { rate: '13%', label: 'Stawka pośrednia (Intermédia)', examples: 'Usługi restauracyjne, wino, wybrane towary rolne i kulturalne.' },
+          { rate: '6%', label: 'Stawka obniżona (Reduzida)', examples: 'Podstawowa żywność, leki, książki i e-booki, hotele, transport publiczny.' },
+        ],
+        faqs: [
+          {
+            q: 'Jak obliczyć kwotę netto z portugalskiej faktury brutto (23% IVA)?',
+            a: 'Podziel kwotę brutto przez 1,23 (Netto = Brutto ÷ 1,23). Różnica między kwotą brutto a netto daje dokładną kwotę IVA.',
+          },
+          {
+            q: 'Jakie stawki VAT obowiązują na Maderze i Azorach?',
+            a: 'Na Maderze stawka podstawowa wynosi 22% (obniżone 12% i 5%), a na Azorach 16% (obniżone 9% i 4%).',
+          },
+          {
+            q: 'Jaki format ma portugalski numer VAT-UE?',
+            a: 'Portugalski numer VAT-UE składa się z prefiksu PT oraz 9-cyfrowego numeru NIF.',
+          },
+        ],
+      },
+    },
+  },
+  {
+    key: 'ireland',
+    code: 'IE',
+    standardRate: 23,
+    reducedRates: [13.5, 9, 0],
+    currency: 'EUR',
+    localTaxName: 'Value-Added Tax (VAT)',
+    vatIdFormat: 'IE + 8–9 alphanumeric chars',
+    names: { en: 'Ireland', de: 'Irland', pl: 'Irlandia' },
+    seo: {
+      en: {
+        title: 'Ireland VAT Calculator (23%, 13.5% & 9% VAT) | CalcLedger',
+        description: 'Calculate Irish Revenue VAT at 23% standard, 13.5% reduced, 9% second reduced, or 0% rates in EUR. Instant net-to-gross and reverse math.',
+        h1: 'Ireland VAT Calculator (23%, 13.5% & 9%)',
+        subtitle: 'Instant EUR net-to-gross and gross-to-net calculator for Irish VAT across 23%, 13.5%, 9%, and 0% rates.',
+        intro: 'Ireland applies a 23% standard VAT rate on most goods, SaaS, and commercial services. Reduced rates include 13.5% (construction, hospitality, electricity, fuel, repair services), 9% (newspapers, e-books, selected energy/facilities), and 0% (most staple groceries, printed books, children’s clothing).',
+        rateNotes: [
+          { rate: '23%', label: 'Standard rate', examples: 'General retail goods, SaaS, consulting, electronics, adult clothing.' },
+          { rate: '13.5%', label: 'Reduced rate', examples: 'Building services, hotel accommodation, restaurant meals, electricity, domestic fuel.' },
+          { rate: '9% / 0%', label: 'Second reduced & zero-rated', examples: '9%: e-books, newspapers, sports facilities; 0%: basic food, printed books, children’s clothes.' },
+        ],
+        faqs: [
+          {
+            q: 'How do I remove 23% Irish VAT from a gross invoice total?',
+            a: 'Divide the gross amount by 1.23 (Net = Gross ÷ 1.23). For 13.5% VAT, divide by 1.135.',
+          },
+          {
+            q: 'What services use Ireland’s 13.5% VAT rate?',
+            a: 'The 13.5% rate applies widely to construction and property services, hotel stays, catering/restaurant food, energy/fuel, and routine repair services.',
+          },
+          {
+            q: 'Are printed books and groceries zero-rated in Ireland?',
+            a: 'Yes, most staple food items, printed books, and children’s clothing/footwear qualify for 0% VAT in Ireland.',
+          },
+        ],
+      },
+      de: {
+        title: 'MwSt Rechner Irland (23%, 13,5% & 9% VAT) | CalcLedger',
+        description: 'Irische Mehrwertsteuer (VAT) mit 23% Standardsatz, 13,5% oder 9% ermäßigtem Satz in EUR berechnen. Netto-Brutto-Rechner live.',
+        h1: 'MwSt-Rechner Irland (23 %, 13,5 % & 9 % VAT)',
+        subtitle: 'Schneller Netto-Brutto-Rechner in EUR für die irische Value-Added Tax (23 %, 13,5 %, 9 % und 0 %).',
+        intro: 'In Irland liegt der reguläre VAT-Satz bei 23 %. Daneben bestehen 13,5 % (u. a. Bauleistungen, Hotels, Restaurants, Energie), 9 % (z. B. Zeitungen, E-Books) sowie 0 % für Grundnahrungsmittel, gedruckte Bücher und Kinderkleidung.',
+        rateNotes: [
+          { rate: '23 %', label: 'Standard Rate', examples: 'Allgemeine Waren, Elektronik, Software, Beratung, Dienstleistungen.' },
+          { rate: '13,5 %', label: 'Reduced Rate', examples: 'Bauleistungen, Hotels, Gastronomie, Strom, Brennstoffe, Reparaturen.' },
+          { rate: '9 % / 0 %', label: 'Second Reduced & Zero', examples: '9 %: Zeitungen, E-Books, Sportanlagen; 0 %: Grundnahrungsmittel, gedruckte Bücher, Kinderkleidung.' },
+        ],
+        faqs: [
+          {
+            q: 'Wie rechne ich 23 % irische VAT aus dem Bruttobetrag heraus?',
+            a: 'Teilen Sie den Bruttobetrag durch 1,23 (bei 13,5 % durch 1,135), um den Nettobetrag in EUR zu berechnen.',
+          },
+          {
+            q: 'Wofür gilt in Irland der 13,5-%-Satz?',
+            a: 'Er gilt u. a. für Bau- und Handwerksleistungen, Hotels, Restaurants, Strom und Brennstoffe.',
+          },
+          {
+            q: 'Wie sieht eine irische USt-IdNr. aus?',
+            a: 'Sie beginnt mit IE gefolgt von 8 oder 9 alphanumerischen Zeichen (z. B. IE1234567FA).',
+          },
+        ],
+      },
+      pl: {
+        title: 'Kalkulator VAT Irlandia (23%, 13,5% i 9%) | CalcLedger',
+        description: 'Oblicz irlandzki podatek VAT (Revenue) dla stawek 23%, 13,5%, 9% i 0% w EUR. Szybkie przeliczanie netto i brutto.',
+        h1: 'Kalkulator VAT Irlandia (23%, 13,5% i 9%)',
+        subtitle: 'Przeliczaj kwoty netto i brutto w EUR dla irlandzkich stawek VAT: 23%, 13,5%, 9% oraz 0%.',
+        intro: 'W Irlandii stawka podstawowa VAT wynosi 23%. Ważna stawka obniżona 13,5% obejmuje m.in. budownictwo, hotele, gastronomię i energię, stawka 9% prasę i e-booki, a 0% podstawową żywność, książki drukowane i odzież dziecięcą.',
+        rateNotes: [
+          { rate: '23%', label: 'Stawka podstawowa (Standard)', examples: 'Większość towarów, elektronika, usługi IT/SaaS, doradztwo i odzież dorosłych.' },
+          { rate: '13,5%', label: 'Stawka obniżona (Reduced)', examples: 'Usługi budowlane, hotele, restauracje, energia elektryczna, paliwa domowe.' },
+          { rate: '9% / 0%', label: 'Obniżona i zerowa', examples: '9%: prasa, e-booki, obiekty sportowe; 0%: podstawowa żywność, książki drukowane, ubrania dziecięce.' },
+        ],
+        faqs: [
+          {
+            q: 'Jak obliczyć netto z irlandzkiej faktury brutto przy 23% lub 13,5% VAT?',
+            a: 'Dla 23% podziel kwotę brutto przez 1,23, a dla 13,5% podziel przez 1,135 — kalkulator obsługuje ułamkowe stawki automatycznie.',
+          },
+          {
+            q: 'Co w Irlandii ma stawkę 0% VAT?',
+            a: 'Większość podstawowych produktów spożywczych, książki drukowane oraz odzież i obuwie dziecięce.',
+          },
+          {
+            q: 'Jaki format ma irlandzki numer VAT-UE?',
+            a: 'Irlandzki numer VAT-UE zaczyna się od prefiksu IE i 8–9 znaków alfanumerycznych (np. IE1234567FA).',
+          },
+        ],
+      },
+    },
+  },
+  {
+    key: 'denmark',
+    code: 'DK',
+    standardRate: 25,
+    reducedRates: [0],
+    currency: 'EUR',
+    localTaxName: 'Merværdiafgift (Moms)',
+    vatIdFormat: 'DK + 8 digits (CVR)',
+    names: { en: 'Denmark', de: 'Dänemark', pl: 'Dania' },
+    seo: {
+      en: {
+        title: 'Denmark VAT Calculator (25% Flat Moms) | CalcLedger',
+        description: 'Calculate Danish VAT (Moms) at the uniform 25% flat rate. Fast net-to-gross and reverse Moms calculation for invoices.',
+        h1: 'Denmark VAT Calculator (25% Moms)',
+        subtitle: 'Instant net-to-gross and reverse VAT calculator for Denmark’s uniform 25% Moms rate.',
+        intro: 'Denmark is unique in the EU for applying a single, flat 25% VAT (Moms) rate across almost all goods and services — including groceries, books, and hotel stays — with no reduced intermediate VAT tier (only specific 0% exemptions such as newspapers and intra-EU B2B supplies).',
+        rateNotes: [
+          { rate: '25%', label: 'Uniform standard rate (Almindelig moms)', examples: 'Nearly all goods & services, including food, books, hospitality, SaaS, consulting.' },
+          { rate: '0%', label: 'Zero-rated / exempt', examples: 'Newspapers, international transport, intra-EU B2B Reverse Charge, exports outside EU.' },
+        ],
+        faqs: [
+          {
+            q: 'How do I extract 25% Danish Moms from a gross total?',
+            a: 'Divide the gross price by 1.25 (or multiply by 0.80) to find the net price. Danish Moms is always exactly 20% (one-fifth) of the gross amount.',
+          },
+          {
+            q: 'Does Denmark have a reduced VAT rate for groceries or books?',
+            a: 'No. Unlike most EU member states, Denmark charges the flat 25% Moms rate on food, restaurants, hotels, and books alike.',
+          },
+          {
+            q: 'What is a Danish VAT ID (CVR-nummer) format?',
+            a: 'Danish VAT numbers use prefix DK followed by the 8-digit CVR registration number (e.g., DK12345678).',
+          },
+        ],
+      },
+      de: {
+        title: 'MwSt Rechner Dänemark (25% Moms) — Netto Brutto | CalcLedger',
+        description: 'Dänische Mehrwertsteuer (Moms) mit dem einheitlichen 25%-Steuersatz berechnen. Schneller Netto-Brutto- und Brutto-Netto-Rechner.',
+        h1: 'MwSt-Rechner Dänemark (25 % Moms)',
+        subtitle: 'Sofortiger Netto-Brutto-Rechner für die einheitliche dänische Mehrwertsteuer (Moms) von 25 %.',
+        intro: 'Dänemark erhebt als Besonderheit in der EU einen einheitlichen Mehrwertsteuersatz (Moms) von 25 % auf nahezu sämtliche Waren und Dienstleistungen — einschließlich Lebensmitteln, Büchern und Hotels. Ermäßigte Zwischensätze gibt es nicht.',
+        rateNotes: [
+          { rate: '25 %', label: 'Einheitlicher Steuersatz (Moms)', examples: 'Nahezu alle Waren & Dienstleistungen inkl. Lebensmittel, Bücher, Hotels, Beratung.' },
+          { rate: '0 %', label: 'Steuerfrei / Nullsatz', examples: 'Zeitungen, internationaler Verkehr, innergemeinschaftliche B2B-Lieferungen.' },
+        ],
+        faqs: [
+          {
+            q: 'Wie rechne ich 25 % dänische Moms aus dem Bruttobetrag heraus?',
+            a: 'Teilen Sie den Bruttobetrag durch 1,25 (bzw. mal 0,80). Die enthaltene Moms entspricht exakt 20 % des Bruttobetrags.',
+          },
+          {
+            q: 'Gibt es in Dänemark einen ermäßigten MwSt-Satz für Lebensmittel?',
+            a: 'Nein. In Dänemark gilt der einheitliche Satz von 25 % auch für Lebensmittel, Gastronomie, Hotels und Bücher.',
+          },
+          {
+            q: 'Wie ist eine dänische USt-IdNr. aufgebaut?',
+            a: 'Sie besteht aus dem Präfix DK gefolgt von der 8-stelligen CVR-Nummer (z. B. DK12345678).',
+          },
+        ],
+      },
+      pl: {
+        title: 'Kalkulator VAT Dania (25% Moms) — Netto Brutto | CalcLedger',
+        description: 'Oblicz duński podatek VAT (Moms) według jednolitej stawki 25%. Szybkie przeliczanie netto na brutto i brutto na netto.',
+        h1: 'Kalkulator VAT Dania (25% Moms)',
+        subtitle: 'Szybkie przeliczanie netto ↔ brutto dla jednolitej duńskiej stawki podatku VAT (Moms) wynoszącej 25%.',
+        intro: 'Dania wyróżnia się w Unii Europejskiej jednolitą stawką VAT (Moms) wynoszącą 25% na niemal wszystkie towary i usługi — łącznie z żywnością, książkami i hotelami. Nie ma tam pośrednich stawek obniżonych.',
+        rateNotes: [
+          { rate: '25%', label: 'Jednolita stawka (Moms)', examples: 'Niemal wszystkie towary i usługi, w tym żywność, książki, hotele, IT, konsulting.' },
+          { rate: '0%', label: 'Stawka 0% / zwolnienie', examples: 'Gazety, transport międzynarodowy, wewnątrzwspólnotowe dostawy B2B (Reverse Charge).' },
+        ],
+        faqs: [
+          {
+            q: 'Jak obliczyć kwotę netto z duńskiej ceny brutto (25% Moms)?',
+            a: 'Podziel kwotę brutto przez 1,25 (czyli pomnóż przez 0,80). Podatek Moms stanowi dokładnie 20% ceny brutto.',
+          },
+          {
+            q: 'Czy w Danii jest obniżony VAT na żywność lub książki?',
+            a: 'Nie — Dania stosuje jednolitą stawkę 25% również dla żywności, restauracji, hoteli oraz książek.',
+          },
+          {
+            q: 'Jaki format ma duński numer VAT-UE (CVR)?',
+            a: 'Duński numer VAT-UE składa się z prefiksu DK oraz 8-cyfrowego numeru CVR (np. DK12345678).',
+          },
+        ],
+      },
+    },
+  },
 ];
 
 export function getVatCountry(key) {

@@ -6,10 +6,13 @@ import { SITE_CONFIG, isAdsenseActive, getAdsensePublisherId } from '../src/conf
 import { ROUTES, getRoutePath, getAbsoluteUrl, getHreflangAlternates } from '../src/data/routes.js';
 import { VAT_COUNTRIES } from '../src/data/vat-countries.js';
 import { MARKETPLACES } from '../src/data/marketplaces.js';
+import { PAYMENT_PROVIDERS } from '../src/data/payment-providers.js';
 
 import { renderHomePage, renderNotFoundPage } from '../src/templates/home.js';
 import { renderVatPage } from '../src/templates/vat.js';
 import { renderMarketplacePage } from '../src/templates/marketplace.js';
+import { renderPaymentPage } from '../src/templates/payment.js';
+import { renderRoasPage } from '../src/templates/roas.js';
 import { renderMarginPage } from '../src/templates/margin.js';
 import { renderFreelancePage } from '../src/templates/freelance.js';
 import { renderCompoundPage } from '../src/templates/compound.js';
@@ -54,9 +57,9 @@ function generateSitemapXml() {
     const priority =
       pageKey === 'home'
         ? '1.0'
-        : ['vat', 'marketplace', 'margin', 'freelance', 'compound'].includes(pageKey)
+        : ['vat', 'marketplace', 'payment', 'roas', 'margin', 'freelance', 'compound'].includes(pageKey)
           ? '0.9'
-          : pageKey.startsWith('vat:') || pageKey.startsWith('marketplace:')
+          : pageKey.startsWith('vat:') || pageKey.startsWith('marketplace:') || pageKey.startsWith('payment:')
             ? '0.8'
             : '0.5';
 
@@ -167,7 +170,7 @@ function build() {
     writeRouteHtml(getRoutePath('home', lang), renderHomePage(lang));
     pageCount++;
 
-    // 2. VAT Main + 9 Country Programmatic SEO Subpages
+    // 2. VAT Main + 15 Country Programmatic SEO Subpages
     writeRouteHtml(getRoutePath('vat', lang), renderVatPage(lang, null));
     pageCount++;
     for (const country of VAT_COUNTRIES) {
@@ -183,19 +186,31 @@ function build() {
       pageCount++;
     }
 
-    // 4. Margin & Markup
+    // 4. Payment Fee Main + 2 Gateway Programmatic SEO Subpages (PayPal, Stripe)
+    writeRouteHtml(getRoutePath('payment', lang), renderPaymentPage(lang, null));
+    pageCount++;
+    for (const provider of PAYMENT_PROVIDERS) {
+      writeRouteHtml(getRoutePath(`payment:${provider.key}`, lang), renderPaymentPage(lang, provider));
+      pageCount++;
+    }
+
+    // 5. ROAS <-> ACOS Calculator
+    writeRouteHtml(getRoutePath('roas', lang), renderRoasPage(lang));
+    pageCount++;
+
+    // 6. Margin & Markup
     writeRouteHtml(getRoutePath('margin', lang), renderMarginPage(lang));
     pageCount++;
 
-    // 5. Freelance Rate (B2B)
+    // 7. Freelance Rate (B2B)
     writeRouteHtml(getRoutePath('freelance', lang), renderFreelancePage(lang));
     pageCount++;
 
-    // 6. Compound Interest & ROI
+    // 8. Compound Interest & ROI
     writeRouteHtml(getRoutePath('compound', lang), renderCompoundPage(lang));
     pageCount++;
 
-    // 7. Legal / AdSense Compliance Pages
+    // 9. Legal / AdSense Compliance Pages
     for (const legalType of ['about', 'privacy', 'terms', 'contact']) {
       writeRouteHtml(getRoutePath(legalType, lang), renderLegalPage(lang, legalType));
       pageCount++;
