@@ -410,17 +410,16 @@ export const I18N_DE = {
       ],
     },
     terms: {
-      title: 'Impressum & Nutzungsbedingungen (§ 5 DDG) | CalcLedger',
-      description: 'Impressum gemäß § 5 DDG, Kontaktangaben und Haftungsausschluss für die Finanzrechner auf CalcLedger (calcledger.org).',
+      title: 'Impressum & Nutzungsbedingungen | CalcLedger',
+      description: 'Anbieterinformationen, Kontaktangaben und Haftungsausschluss für die kostenlosen Finanz- und E-Commerce-Rechner auf CalcLedger (calcledger.org).',
       h1: 'Impressum & Nutzungsbedingungen',
-      subtitle: 'Angaben gemäß § 5 DDG (Digitale-Dienste-Gesetz) · https://calcledger.org',
+      subtitle: 'Stand: November 2026 · https://calcledger.org',
       sections: [
         {
-          heading: 'Angaben zum Betreiber (§ 5 DDG)',
+          heading: 'Anbieter & Kontakt',
           paragraphs: [
-            'CalcLedger — Unabhängiges Online-Informationsportal für Finanz- und E-Commerce-Rechner.',
-            'E-Mail: contact@calcledger.org · Website: https://calcledger.org',
-            'Hinweis für den Betreiber: Bitte ergänzen Sie hier vor dem produktiven Start im DACH-Raum Ihren vollständigen Namen bzw. Ihre Firmierung sowie eine ladungsfähige Anschrift (und ggf. USt-IdNr.) gemäß § 5 DDG.',
+            'CalcLedger — Unabhängiges Online-Informationsportal für browserbasierte Finanz- und E-Commerce-Rechner.',
+            'E-Mail für rechtliche Anfragen, Feedback und Datenschutz: contact@calcledger.org · Website: https://calcledger.org',
           ],
         },
         {
