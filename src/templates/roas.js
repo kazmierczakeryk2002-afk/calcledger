@@ -128,9 +128,9 @@ export function renderRoasPage(lang) {
             <thead>
               <tr>
                 <th>${escapeHtml(t.roas.colRoas)}</th>
-                <th>${escapeHtml(t.roas.colAcos)}</th>
-                <th>${escapeHtml(t.roas.colMinMargin)}</th>
-                <th>${escapeHtml(t.roas.colRevPer100)}</th>
+                <th class="num">${escapeHtml(t.roas.colAcos)}</th>
+                <th class="num">${escapeHtml(t.roas.colMinMargin)}</th>
+                <th class="num">${escapeHtml(t.roas.colRevPer100)}</th>
               </tr>
             </thead>
             <tbody>${refRowsHtml}</tbody>

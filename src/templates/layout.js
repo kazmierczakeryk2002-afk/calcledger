@@ -3,6 +3,7 @@ import { getRoutePath, getAbsoluteUrl, getHreflangAlternates } from '../data/rou
 import { getI18n, escapeHtml, safeJsonLd } from '../data/i18n.js';
 import { VAT_COUNTRIES } from '../data/vat-countries.js';
 import { MARKETPLACES } from '../data/marketplaces.js';
+import { PAYMENT_PROVIDERS } from '../data/payment-providers.js';
 import { getMarketPriority, sortByKeyOrder } from '../data/market-priority.js';
 
 export function renderAdSlot(slotKey, t) {
@@ -269,11 +270,42 @@ export function renderLayout({
     `<li><a href="${escapeHtml(getRoutePath('payment:paypal', lang))}">PayPal</a></li>` +
     `<li><a href="${escapeHtml(getRoutePath('payment:stripe', lang))}">Stripe</a></li>`;
 
+  const finderIndex = [
+    ...navItems.map((i) => ({
+      t: t[i.key]?.cardTitle || i.label,
+      c: t.nav.tools,
+      h: getRoutePath(i.key, lang),
+      k: `${i.label} ${t[i.key]?.cardDesc || ''}`.toLowerCase(),
+    })),
+    ...sortByKeyOrder(VAT_COUNTRIES, market.vatCountryOrder).map((c) => ({
+      t: `${c.names[lang]} VAT (${c.standardRate}%)`,
+      c: 'VAT / MwSt',
+      h: getRoutePath(`vat:${c.key}`, lang),
+      k: `${c.names[lang]} ${c.code} ${c.standardRate}% ${c.currency} ${c.localTaxName} vat mwst`.toLowerCase(),
+    })),
+    ...sortByKeyOrder(MARKETPLACES, market.marketplaceOrder).map((m) => ({
+      t: m.name,
+      c: 'Marketplace',
+      h: getRoutePath(`marketplace:${m.key}`, lang),
+      k: `${m.name} ${m.feeSummary[lang]} fees prowizja`.toLowerCase(),
+    })),
+    ...sortByKeyOrder(PAYMENT_PROVIDERS, market.paymentOrder).map((p) => ({
+      t: p.name,
+      c: 'Payments',
+      h: getRoutePath(`payment:${p.key}`, lang),
+      k: `${p.name} ${p.feeSummary[lang]} fee prowizja`.toLowerCase(),
+    })),
+  ];
+
   const clientI18n = {
     lang,
     locale: t.locale,
     copiedResult: t.common.copiedResult,
     copiedLink: t.common.copiedLink,
+    copiedValue: t.common.copiedValue,
+    clickToCopy: t.common.clickToCopy,
+    viewResults: t.common.viewResults,
+    searchEmpty: t.common.searchEmpty,
     copiedEmail: t.legal.contact.copiedEmail,
     vat: {
       amountLabelNet: t.vat.amountLabelNet,
@@ -430,6 +462,13 @@ export function renderLayout({
       </nav>
 
       <div class="site-header__actions">
+        <button type="button" class="finder-trigger" id="finder-open" aria-label="${escapeHtml(t.common.searchLabel)}" title="${escapeHtml(t.common.searchLabel)} (⌘K)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="7.5"></circle>
+            <line x1="20" y1="20" x2="16.4" y2="16.4"></line>
+          </svg>
+          <kbd class="finder-trigger__kbd" aria-hidden="true">⌘K</kbd>
+        </button>
         <div class="lang-switch" role="navigation" aria-label="${escapeHtml(t.nav.langLabel)}">
           ${langSwitcherHtml}
         </div>
@@ -513,6 +552,33 @@ export function renderLayout({
     </div>
   </footer>
 
+  <!-- Quick Finder Modal (Cmd/Ctrl+K) -->
+  <div class="finder-backdrop" id="quick-finder" role="dialog" aria-modal="true" aria-label="${escapeHtml(t.common.searchLabel)}" hidden>
+    <div class="finder-dialog">
+      <div class="finder-head">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7.5"></circle>
+          <line x1="20" y1="20" x2="16.4" y2="16.4"></line>
+        </svg>
+        <input type="search" class="finder-input" id="finder-input" autocomplete="off" spellcheck="false" placeholder="${escapeHtml(t.common.searchPlaceholder)}" aria-label="${escapeHtml(t.common.searchPlaceholder)}">
+        <button type="button" class="finder-close" id="finder-close" aria-label="Close">Esc</button>
+      </div>
+      <div class="finder-list" id="finder-list" role="listbox"></div>
+    </div>
+  </div>
+
+  ${
+    includeCalculatorScript
+      ? `<button type="button" class="mobile-result-dock" id="mobile-result-dock" hidden>
+    <span class="mobile-result-dock__meta">
+      <span class="mobile-result-dock__label" id="dock-label"></span>
+      <strong class="mobile-result-dock__value num" id="dock-value">—</strong>
+    </span>
+    <span class="mobile-result-dock__cta">${escapeHtml(t.common.viewResults)} &darr;</span>
+  </button>`
+      : ''
+  }
+
   <!-- Cookie Consent Banner (Google Consent Mode v2 / GDPR / RODO / DSGVO) -->
   <div class="consent-banner" id="consent-banner" role="dialog" aria-modal="false" aria-labelledby="consent-title" hidden>
     <div class="container consent-banner__inner">
@@ -557,7 +623,7 @@ export function renderLayout({
 
   <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
-  <script>window.CALCLEDGER_I18N = ${safeJsonLd(clientI18n)};</script>
+  <script>window.CALCLEDGER_I18N = ${safeJsonLd(clientI18n)};window.CALCLEDGER_FINDER = ${safeJsonLd(finderIndex)};</script>
   <script src="/assets/js/app.js" defer></script>
   ${includeCalculatorScript ? '<script src="/assets/js/calculators.js" defer></script>' : ''}
 </body>

@@ -178,12 +178,12 @@ export function renderCompoundPage(lang) {
             <thead>
               <tr>
                 <th>${escapeHtml(t.compound.colYear)}</th>
-                <th>${escapeHtml(t.compound.colStart)}</th>
-                <th>${escapeHtml(t.compound.colAdded)}</th>
-                <th>${escapeHtml(t.compound.colInterest)}</th>
-                <th>${escapeHtml(t.compound.colEnd)}</th>
-                <th>${escapeHtml(t.compound.colReal)}</th>
-                <th>${escapeHtml(t.compound.colRoi)}</th>
+                <th class="num">${escapeHtml(t.compound.colStart)}</th>
+                <th class="num">${escapeHtml(t.compound.colAdded)}</th>
+                <th class="num">${escapeHtml(t.compound.colInterest)}</th>
+                <th class="num">${escapeHtml(t.compound.colEnd)}</th>
+                <th class="num">${escapeHtml(t.compound.colReal)}</th>
+                <th class="num">${escapeHtml(t.compound.colRoi)}</th>
               </tr>
             </thead>
             <tbody id="cmp-table-body"></tbody>

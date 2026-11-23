@@ -139,9 +139,9 @@ export function renderMarginPage(lang) {
             <thead>
               <tr>
                 <th>${escapeHtml(t.margin.colMargin)}</th>
-                <th>${escapeHtml(t.margin.colMarkup)}</th>
-                <th>${escapeHtml(t.margin.colMultiplier)}</th>
-                <th>${escapeHtml(t.margin.colExample)}</th>
+                <th class="num">${escapeHtml(t.margin.colMarkup)}</th>
+                <th class="num">${escapeHtml(t.margin.colMultiplier)}</th>
+                <th class="num">${escapeHtml(t.margin.colExample)}</th>
               </tr>
             </thead>
             <tbody>${refRowsHtml}</tbody>

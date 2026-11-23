@@ -107,6 +107,8 @@ export function renderMarketplacePage(lang, marketplace = null) {
             </select>
           </div>
 
+          <div class="field-group-title">${escapeHtml(t.marketplace.groupPricing)}</div>
+
           <div class="field-row">
             <div class="field">
               <label class="field__label" for="mp-price">${escapeHtml(t.marketplace.priceLabel)}</label>
@@ -129,6 +131,8 @@ export function renderMarketplacePage(lang, marketplace = null) {
             </div>
           </div>
 
+          <div class="field-group-title">${escapeHtml(t.marketplace.groupFees)}</div>
+
           <div class="field-row">
             <div class="field">
               <label class="field__label" for="mp-comm">${escapeHtml(t.marketplace.commissionLabel)}</label>
@@ -150,6 +154,8 @@ export function renderMarketplacePage(lang, marketplace = null) {
               <input class="input num" type="number" id="mp-acos" inputmode="decimal" step="0.5" min="0" max="100" value="${activePreset.acosPct}">
             </div>
           </div>
+
+          <div class="field-group-title">${escapeHtml(t.marketplace.groupScale)}</div>
 
           <div class="field-row">
             <div class="field">
@@ -261,11 +267,11 @@ export function renderMarketplacePage(lang, marketplace = null) {
             <thead>
               <tr>
                 <th>${escapeHtml(t.marketplace.colPlatform)}</th>
-                <th>${escapeHtml(t.marketplace.colFees)}</th>
-                <th>${escapeHtml(t.marketplace.colProfitOrder)}</th>
-                <th>${escapeHtml(t.marketplace.colMargin)}</th>
-                <th>${escapeHtml(t.marketplace.colBeAcos)}</th>
-                <th>${escapeHtml(t.marketplace.colMonthly)}</th>
+                <th class="num">${escapeHtml(t.marketplace.colFees)}</th>
+                <th class="num">${escapeHtml(t.marketplace.colProfitOrder)}</th>
+                <th class="num">${escapeHtml(t.marketplace.colMargin)}</th>
+                <th class="num">${escapeHtml(t.marketplace.colBeAcos)}</th>
+                <th class="num">${escapeHtml(t.marketplace.colMonthly)}</th>
               </tr>
             </thead>
             <tbody id="mp-compare-body"></tbody>

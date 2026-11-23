@@ -167,18 +167,234 @@
     const drawer = document.getElementById('mobile-drawer');
     if (!btn || !drawer) return;
 
-    btn.addEventListener('click', () => {
+    const close = () => {
+      btn.setAttribute('aria-expanded', 'false');
+      drawer.hidden = true;
+    };
+
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
       const expanded = btn.getAttribute('aria-expanded') === 'true';
       btn.setAttribute('aria-expanded', String(!expanded));
       drawer.hidden = expanded;
     });
 
-    document.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape' && !drawer.hidden) {
-        btn.setAttribute('aria-expanded', 'false');
-        drawer.hidden = true;
+    drawer.querySelectorAll('a').forEach((a) => a.addEventListener('click', close));
+
+    document.addEventListener('click', (e) => {
+      if (!drawer.hidden && !drawer.contains(e.target) && !btn.contains(e.target)) {
+        close();
       }
     });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && !drawer.hidden) close();
+    });
+  }
+
+  /* Quick Finder Command Palette (Cmd/Ctrl+K or header search button) */
+  function initQuickFinder() {
+    const backdrop = document.getElementById('quick-finder');
+    const openBtn = document.getElementById('finder-open');
+    const closeBtn = document.getElementById('finder-close');
+    const input = document.getElementById('finder-input');
+    const list = document.getElementById('finder-list');
+    const items = Array.isArray(window.CALCLEDGER_FINDER) ? window.CALCLEDGER_FINDER : [];
+    if (!backdrop || !input || !list || !items.length) return;
+
+    const norm = (s) =>
+      String(s || '')
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/ł/g, 'l');
+
+    const indexed = items.map((it) => ({ ...it, _s: norm(`${it.t} ${it.c} ${it.k}`) }));
+    let activeIdx = 0;
+    let currentMatches = indexed;
+
+    function render(query) {
+      const q = norm(query).trim();
+      currentMatches = q ? indexed.filter((it) => it._s.includes(q)) : indexed;
+      activeIdx = 0;
+      if (!currentMatches.length) {
+        list.innerHTML = `<div class="finder-empty">${I18N.searchEmpty || 'No matching calculators found.'}</div>`;
+        return;
+      }
+      list.innerHTML = currentMatches
+        .slice(0, 14)
+        .map(
+          (it, idx) =>
+            `<a class="finder-item${idx === 0 ? ' is-active' : ''}" href="${it.h}" role="option" data-finder-idx="${idx}">
+              <span class="finder-item__title">${it.t}</span>
+              <span class="finder-item__cat">${it.c}</span>
+            </a>`
+        )
+        .join('');
+    }
+
+    function setActive(nextIdx) {
+      const links = list.querySelectorAll('.finder-item');
+      if (!links.length) return;
+      activeIdx = (nextIdx + links.length) % links.length;
+      links.forEach((el, i) => el.classList.toggle('is-active', i === activeIdx));
+      links[activeIdx].scrollIntoView({ block: 'nearest' });
+    }
+
+    function open() {
+      backdrop.hidden = false;
+      input.value = '';
+      render('');
+      requestAnimationFrame(() => input.focus());
+    }
+
+    function close() {
+      backdrop.hidden = true;
+      if (openBtn) openBtn.focus();
+    }
+
+    if (openBtn) openBtn.addEventListener('click', open);
+    if (closeBtn) closeBtn.addEventListener('click', close);
+    backdrop.addEventListener('click', (e) => {
+      if (e.target === backdrop) close();
+    });
+
+    input.addEventListener('input', () => render(input.value));
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setActive(activeIdx + 1);
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setActive(activeIdx - 1);
+      } else if (e.key === 'Enter') {
+        const activeEl = list.querySelector('.finder-item.is-active');
+        if (activeEl) {
+          e.preventDefault();
+          window.location.href = activeEl.getAttribute('href');
+        }
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        close();
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        if (backdrop.hidden) open();
+        else close();
+      } else if (e.key === 'Escape' && !backdrop.hidden) {
+        close();
+      }
+    });
+  }
+
+  /* Input Craft: eliminate accidental scroll-wheel changes & polish mobile Done key */
+  function initInputCraft() {
+    document.querySelectorAll('.calc-shell input[type="number"]').forEach((input) => {
+      input.setAttribute('enterkeyhint', 'done');
+      input.addEventListener(
+        'wheel',
+        (e) => {
+          if (document.activeElement === input) {
+            e.preventDefault();
+          }
+        },
+        { passive: false }
+      );
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          input.blur();
+        }
+      });
+    });
+  }
+
+  /* Tap-to-copy on any Result Hero or KPI card */
+  function initTapToCopyResults() {
+    const cards = document.querySelectorAll('.calc-results .result-hero, .calc-results .kpi');
+    if (!cards.length) return;
+    const tip = I18N.clickToCopy || 'Click to copy';
+    const prefix = I18N.copiedValue || 'Copied';
+
+    cards.forEach((card) => {
+      const valueEl = card.querySelector('.num');
+      if (!valueEl) return;
+      card.classList.add('is-copyable');
+      card.setAttribute('title', tip);
+      card.setAttribute('tabindex', '0');
+
+      const doCopy = () => {
+        const val = (valueEl.textContent || '').trim();
+        if (!val || val === '—') return;
+        copyText(val, `${prefix}: ${val}`);
+      };
+
+      card.addEventListener('click', doCopy);
+      card.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          doCopy();
+        }
+      });
+    });
+  }
+
+  /* Mobile Floating Live Result Dock (eliminates mobile scroll-blindness) */
+  function initMobileResultDock() {
+    const dock = document.getElementById('mobile-result-dock');
+    const resultsPanel = document.querySelector('.calc-results');
+    const primaryHero = document.querySelector('.calc-results .result-hero');
+    if (!dock || !resultsPanel || !primaryHero) return;
+
+    const heroLabel = primaryHero.querySelector('.result-hero__label');
+    const heroValue = primaryHero.querySelector('.result-hero__value');
+    const dockLabel = document.getElementById('dock-label');
+    const dockValue = document.getElementById('dock-value');
+    const consentBanner = document.getElementById('consent-banner');
+    let heroVisible = true;
+
+    function syncDock() {
+      if (dockLabel && heroLabel) dockLabel.textContent = heroLabel.textContent;
+      if (dockValue && heroValue) dockValue.textContent = heroValue.textContent;
+      dock.classList.toggle('is-loss', primaryHero.classList.contains('is-loss'));
+      const isMobile = window.innerWidth < 840;
+      const consentOpen = consentBanner && !consentBanner.hidden;
+      dock.hidden = !isMobile || heroVisible || consentOpen;
+    }
+
+    if ('IntersectionObserver' in window) {
+      const observer = new IntersectionObserver(
+        (entries) => {
+          heroVisible = Boolean(entries[0] && entries[0].isIntersecting);
+          syncDock();
+        },
+        { threshold: 0.1 }
+      );
+      observer.observe(primaryHero);
+    }
+
+    if ('MutationObserver' in window) {
+      const mo = new MutationObserver(syncDock);
+      mo.observe(primaryHero, {
+        childList: true,
+        subtree: true,
+        characterData: true,
+        attributes: true,
+        attributeFilter: ['class'],
+      });
+      if (consentBanner) {
+        mo.observe(consentBanner, { attributes: true, attributeFilter: ['hidden'] });
+      }
+    }
+
+    window.addEventListener('resize', syncDock, { passive: true });
+    dock.addEventListener('click', () => {
+      resultsPanel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    syncDock();
   }
 
   /* Google Consent Mode v2 Banner */
@@ -279,6 +495,10 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     initMobileMenu();
+    initQuickFinder();
+    initInputCraft();
+    initTapToCopyResults();
+    initMobileResultDock();
     initConsentBanner();
     initContactPage();
   });
