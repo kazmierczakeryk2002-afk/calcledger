@@ -1,0 +1,16 @@
+{
+  "name": "calcledger",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "CalcLedger — Multilingual static financial micro-tools platform (EN, DE, PL) for https://calcledger.org",
+  "scripts": {
+    "build": "node scripts/build.js",
+    "check-seo": "node scripts/check-seo.js",
+    "serve": "node scripts/serve.js",
+    "verify": "npm run build && npm run check-seo"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
