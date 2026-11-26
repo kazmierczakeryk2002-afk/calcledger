@@ -9,7 +9,12 @@ import { VAT_COUNTRIES } from '../data/vat-countries.js';
 import { MARKETPLACES } from '../data/marketplaces.js';
 import { PAYMENT_PROVIDERS } from '../data/payment-providers.js';
 import { COMPARISONS } from '../data/comparisons.js';
-import { getMarketPriority, sortByKeyOrder } from '../data/market-priority.js';
+import {
+  PERSONAL_TOOL_KEYS,
+  BUSINESS_TOOL_KEYS,
+  getMarketPriority,
+  sortByKeyOrder,
+} from '../data/market-priority.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 function hashAsset(relPath) {
@@ -152,13 +157,16 @@ export function buildWebSiteJsonLd(lang, description) {
       url: SITE_CONFIG.domain,
       email: SITE_CONFIG.contactEmail,
       knowsAbout: [
+        'Salary, Pay Raise, and 50/30/20 Household Budgeting',
+        'Mortgage, Loan Payments, and Early Overpayment Amortization',
+        'Compound Interest, Savings Goals, Capital Gains Tax, and Inflation',
+        'Everyday Percentages, Stacked Discounts, and Percentage Change',
         'European Value-Added Tax (VAT / MwSt / TVA / BTW / IVA)',
         'Marketplace Seller Fees (Etsy, Amazon FBA, eBay, Shopify, Upwork, Allegro)',
         'Payment Gateway Fees (PayPal, Stripe)',
         'ROAS, ACOS, and Break-Even Advertising',
         'Profit Margin and Markup Pricing',
         'B2B Freelance Hourly and Day Rates',
-        'Compound Interest and Investment ROI',
       ],
       contactPoint: {
         '@type': 'ContactPoint',
@@ -190,15 +198,24 @@ export function renderFaqSection(faqs, heading) {
 export function renderRelatedCalculators(currentTool, lang, t) {
   const market = getMarketPriority(lang);
   const allCards = [
+    { key: 'salary', title: t.salary.cardTitle, desc: t.salary.cardDesc, badge: t.nav.personal },
+    { key: 'loan', title: t.loan.cardTitle, desc: t.loan.cardDesc, badge: t.nav.personal },
+    { key: 'compound', title: t.compound.cardTitle, desc: t.compound.cardDesc, badge: t.nav.personal },
+    { key: 'percentage', title: t.percentage.cardTitle, desc: t.percentage.cardDesc, badge: t.nav.personal },
     { key: 'vat', title: t.vat.cardTitle, desc: t.vat.cardDesc, badge: 'VAT / MwSt' },
     { key: 'marketplace', title: t.marketplace.cardTitle, desc: t.marketplace.cardDesc, badge: 'E-Commerce' },
     { key: 'payment', title: t.payment.cardTitle, desc: t.payment.cardDesc, badge: 'Payments' },
     { key: 'roas', title: t.roas.cardTitle, desc: t.roas.cardDesc, badge: 'Ads & ROAS' },
     { key: 'margin', title: t.margin.cardTitle, desc: t.margin.cardDesc, badge: 'Pricing' },
     { key: 'freelance', title: t.freelance.cardTitle, desc: t.freelance.cardDesc, badge: 'B2B' },
-    { key: 'compound', title: t.compound.cardTitle, desc: t.compound.cardDesc, badge: 'ROI' },
   ];
-  const cards = sortByKeyOrder(allCards, market.toolOrder)
+
+  const isPersonal = PERSONAL_TOOL_KEYS.includes(currentTool);
+  const preferredOrder = isPersonal
+    ? [...market.personalToolOrder, ...market.businessToolOrder]
+    : [...market.businessToolOrder, ...market.personalToolOrder];
+
+  const cards = sortByKeyOrder(allCards, preferredOrder)
     .filter((c) => c.key !== currentTool)
     .slice(0, 4);
 
@@ -251,25 +268,81 @@ export function renderLayout({
     ? `<meta name="google-adsense-account" content="${escapeHtml(SITE_CONFIG.adsenseClientId)}">\n  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${escapeHtml(SITE_CONFIG.adsenseClientId)}" crossorigin="anonymous"></script>`
     : '';
 
-  const navItems = sortByKeyOrder(
+  const personalNavItems = sortByKeyOrder(
     [
-      { key: 'vat', label: t.nav.vat },
-      { key: 'marketplace', label: t.nav.marketplace },
-      { key: 'payment', label: t.nav.payment },
-      { key: 'roas', label: t.nav.roas },
-      { key: 'margin', label: t.nav.margin },
-      { key: 'freelance', label: t.nav.freelance },
-      { key: 'compound', label: t.nav.compound },
+      { key: 'salary', label: t.nav.salary, title: t.salary.cardTitle },
+      { key: 'loan', label: t.nav.loan, title: t.loan.cardTitle },
+      { key: 'compound', label: t.nav.compound, title: t.compound.cardTitle },
+      { key: 'percentage', label: t.nav.percentage, title: t.percentage.cardTitle },
     ],
-    market.toolOrder
+    market.personalToolOrder
   );
 
-  const desktopNavHtml = navItems
-    .map(
-      (item) =>
-        `<a class="site-nav__link${activeNav === item.key ? ' is-active' : ''}" href="${escapeHtml(getRoutePath(item.key, lang))}">${escapeHtml(item.label)}</a>`
-    )
-    .join('');
+  const businessNavItems = sortByKeyOrder(
+    [
+      { key: 'vat', label: t.nav.vat, title: t.vat.cardTitle },
+      { key: 'marketplace', label: t.nav.marketplace, title: t.marketplace.cardTitle },
+      { key: 'margin', label: t.nav.margin, title: t.margin.cardTitle },
+      { key: 'payment', label: t.nav.payment, title: t.payment.cardTitle },
+      { key: 'freelance', label: t.nav.freelance, title: t.freelance.cardTitle },
+      { key: 'roas', label: t.nav.roas, title: t.roas.cardTitle },
+    ],
+    market.businessToolOrder
+  );
+
+  const allNavMap = new Map([...personalNavItems, ...businessNavItems].map((i) => [i.key, i]));
+  const quickNavItems = market.quickNavOrder.map((k) => allNavMap.get(k)).filter(Boolean);
+  const allNavItems = sortByKeyOrder([...personalNavItems, ...businessNavItems], market.toolOrder);
+
+  const personalActive = PERSONAL_TOOL_KEYS.includes(activeNav);
+  const businessActive = BUSINESS_TOOL_KEYS.includes(activeNav);
+
+  const renderDropdown = (groupLabel, items, isActive) => `
+    <div class="nav-drop">
+      <button type="button" class="site-nav__link nav-drop__trigger${isActive ? ' is-active' : ''}" aria-expanded="false">
+        <span>${escapeHtml(groupLabel)}</span>
+        <svg class="nav-drop__chev" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+      </button>
+      <div class="nav-drop__menu" hidden>
+        ${items
+          .map(
+            (item) =>
+              `<a class="nav-drop__item${activeNav === item.key ? ' is-active' : ''}" href="${escapeHtml(getRoutePath(item.key, lang))}">${escapeHtml(item.title)}</a>`
+          )
+          .join('')}
+      </div>
+    </div>`;
+
+  const desktopNavHtml =
+    renderDropdown(t.nav.personal, personalNavItems, personalActive) +
+    renderDropdown(t.nav.business, businessNavItems, businessActive) +
+    `<span class="site-nav__sep" aria-hidden="true"></span>` +
+    quickNavItems
+      .map(
+        (item) =>
+          `<a class="site-nav__link${activeNav === item.key ? ' is-active' : ''}" href="${escapeHtml(getRoutePath(item.key, lang))}">${escapeHtml(item.label)}</a>`
+      )
+      .join('');
+
+  const mobileNavHtml = `
+    <span class="mobile-nav__group">${escapeHtml(t.nav.personal)}</span>
+    ${personalNavItems
+      .map(
+        (item) =>
+          `<a class="site-nav__link${activeNav === item.key ? ' is-active' : ''}" href="${escapeHtml(getRoutePath(item.key, lang))}">${escapeHtml(item.title)}</a>`
+      )
+      .join('')}
+    <span class="mobile-nav__group">${escapeHtml(t.nav.business)}</span>
+    ${businessNavItems
+      .map(
+        (item) =>
+          `<a class="site-nav__link${activeNav === item.key ? ' is-active' : ''}" href="${escapeHtml(getRoutePath(item.key, lang))}">${escapeHtml(item.title)}</a>`
+      )
+      .join('')}
+    <span class="mobile-nav__group">${escapeHtml(t.footer.companyCol)}</span>
+    <a class="site-nav__link" href="${escapeHtml(getRoutePath('about', lang))}">${escapeHtml(t.nav.about)}</a>
+    <a class="site-nav__link" href="${escapeHtml(getRoutePath('contact', lang))}">${escapeHtml(t.footer.contact)}</a>
+  `;
 
   const langSwitcherHtml = SITE_CONFIG.languages
     .map((l) => {
@@ -297,9 +370,9 @@ export function renderLayout({
     `<li><a href="${escapeHtml(getRoutePath('payment:stripe', lang))}">Stripe</a></li>`;
 
   const finderIndex = [
-    ...navItems.map((i) => ({
+    ...allNavItems.map((i) => ({
       t: t[i.key]?.cardTitle || i.label,
-      c: t.nav.tools,
+      c: PERSONAL_TOOL_KEYS.includes(i.key) ? t.nav.personal : t.nav.business,
       h: getRoutePath(i.key, lang),
       k: `${i.label} ${t[i.key]?.cardDesc || ''}`.toLowerCase(),
     })),
@@ -419,6 +492,41 @@ export function renderLayout({
       winnerSaves: t.compare.winnerSaves,
       winnerBadge: t.compare.winnerBadge,
     },
+    loan: {
+      outMonthly: t.loan.outMonthly,
+      outInterestSaved: t.loan.outInterestSaved,
+      outTimeSaved: t.loan.outTimeSaved,
+      outTotalInterest: t.loan.outTotalInterest,
+      downloadedCsv: t.loan.downloadedCsv,
+      colYear: t.loan.colYear,
+      colPayment: t.loan.colPayment,
+      colPrincipal: t.loan.colPrincipal,
+      colInterest: t.loan.colInterest,
+      colBalance: t.loan.colBalance,
+      colStdBalance: t.loan.colStdBalance,
+      unitYears: t.loan.unitYears,
+      unitMonths: t.loan.unitMonths,
+      noSavings: t.loan.noSavings,
+    },
+    salary: {
+      amountLabelNet: t.salary.amountLabelNet,
+      amountLabelGross: t.salary.amountLabelGross,
+      outMonthlyNet: t.salary.outMonthlyNet,
+      outHourlyNet: t.salary.outHourlyNet,
+      outYearlyNet: t.salary.outYearlyNet,
+      workHoursFmt: t.salary.workHoursFmt,
+    },
+    percentage: {
+      outFinalPrice: t.percentage.outFinalPrice,
+      outYouSave: t.percentage.outYouSave,
+      outEffDiscount: t.percentage.outEffDiscount,
+      outOfResult: t.percentage.outOfResult,
+      outRemainder: t.percentage.outRemainder,
+      outPlusPct: t.percentage.outPlusPct,
+      outChangePct: t.percentage.outChangePct,
+      outChangeDiff: t.percentage.outChangeDiff,
+      outMultiplier: t.percentage.outMultiplier,
+    },
   };
 
   return `<!DOCTYPE html>
@@ -520,9 +628,7 @@ export function renderLayout({
     <div class="mobile-drawer" id="mobile-drawer" hidden>
       <div class="container mobile-drawer__inner">
         <nav class="mobile-nav" aria-label="${escapeHtml(t.nav.tools)}">
-          ${desktopNavHtml}
-          <a class="site-nav__link" href="${escapeHtml(getRoutePath('about', lang))}">${escapeHtml(t.nav.about)}</a>
-          <a class="site-nav__link" href="${escapeHtml(getRoutePath('contact', lang))}">${escapeHtml(t.footer.contact)}</a>
+          ${mobileNavHtml}
         </nav>
       </div>
     </div>
@@ -554,9 +660,13 @@ export function renderLayout({
         </div>
 
         <div class="footer-col">
-          <h3 class="footer-col__title">${escapeHtml(t.footer.calculatorsCol)}</h3>
+          <h3 class="footer-col__title">${escapeHtml(t.footer.personalCol)}</h3>
           <ul>
-            ${navItems.map((i) => `<li><a href="${escapeHtml(getRoutePath(i.key, lang))}">${escapeHtml(i.label)}</a></li>`).join('')}
+            ${personalNavItems.map((i) => `<li><a href="${escapeHtml(getRoutePath(i.key, lang))}">${escapeHtml(i.label)}</a></li>`).join('')}
+          </ul>
+          <h3 class="footer-col__title footer-col__title--sub">${escapeHtml(t.footer.businessCol)}</h3>
+          <ul>
+            ${businessNavItems.map((i) => `<li><a href="${escapeHtml(getRoutePath(i.key, lang))}">${escapeHtml(i.label)}</a></li>`).join('')}
           </ul>
         </div>
 

@@ -192,6 +192,46 @@
     });
   }
 
+  /* Desktop Navigation Dropdowns (Personal / Business) */
+  function initNavDropdowns() {
+    const drops = Array.from(document.querySelectorAll('.nav-drop'));
+    if (!drops.length) return;
+
+    function closeAll(except) {
+      drops.forEach((drop) => {
+        if (drop === except) return;
+        const btn = drop.querySelector('.nav-drop__trigger');
+        const menu = drop.querySelector('.nav-drop__menu');
+        if (btn) btn.setAttribute('aria-expanded', 'false');
+        if (menu) menu.hidden = true;
+      });
+    }
+
+    drops.forEach((drop) => {
+      const btn = drop.querySelector('.nav-drop__trigger');
+      const menu = drop.querySelector('.nav-drop__menu');
+      if (!btn || !menu) return;
+
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = btn.getAttribute('aria-expanded') === 'true';
+        closeAll(drop);
+        btn.setAttribute('aria-expanded', String(!isOpen));
+        menu.hidden = isOpen;
+      });
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!drops.some((d) => d.contains(e.target))) {
+        closeAll(null);
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeAll(null);
+    });
+  }
+
   /* Quick Finder Command Palette (Cmd/Ctrl+K or header search button) */
   function initQuickFinder() {
     const backdrop = document.getElementById('quick-finder');
@@ -561,6 +601,7 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     initMobileMenu();
+    initNavDropdowns();
     initQuickFinder();
     initHints();
     initInputCraft();

@@ -17,16 +17,23 @@ export function renderHomePage(lang) {
   const t = getI18n(lang);
   const market = getMarketPriority(lang);
 
-  const allCoreTools = [
-    { key: 'vat', tag: 'VAT / MwSt', title: t.vat.cardTitle, desc: t.vat.cardDesc },
-    { key: 'marketplace', tag: 'E-Commerce', title: t.marketplace.cardTitle, desc: t.marketplace.cardDesc },
-    { key: 'payment', tag: 'Payments', title: t.payment.cardTitle, desc: t.payment.cardDesc },
-    { key: 'roas', tag: 'Ads & ROAS', title: t.roas.cardTitle, desc: t.roas.cardDesc },
-    { key: 'margin', tag: 'Pricing', title: t.margin.cardTitle, desc: t.margin.cardDesc },
-    { key: 'freelance', tag: 'B2B', title: t.freelance.cardTitle, desc: t.freelance.cardDesc },
-    { key: 'compound', tag: 'ROI & Growth', title: t.compound.cardTitle, desc: t.compound.cardDesc },
+  const personalToolsAll = [
+    { key: 'salary', title: t.salary.cardTitle, desc: t.salary.cardDesc },
+    { key: 'loan', title: t.loan.cardTitle, desc: t.loan.cardDesc },
+    { key: 'compound', title: t.compound.cardTitle, desc: t.compound.cardDesc },
+    { key: 'percentage', title: t.percentage.cardTitle, desc: t.percentage.cardDesc },
   ];
-  const coreTools = sortByKeyOrder(allCoreTools, market.toolOrder);
+  const businessToolsAll = [
+    { key: 'vat', title: t.vat.cardTitle, desc: t.vat.cardDesc },
+    { key: 'marketplace', title: t.marketplace.cardTitle, desc: t.marketplace.cardDesc },
+    { key: 'margin', title: t.margin.cardTitle, desc: t.margin.cardDesc },
+    { key: 'payment', title: t.payment.cardTitle, desc: t.payment.cardDesc },
+    { key: 'freelance', title: t.freelance.cardTitle, desc: t.freelance.cardDesc },
+    { key: 'roas', title: t.roas.cardTitle, desc: t.roas.cardDesc },
+  ];
+
+  const personalTools = sortByKeyOrder(personalToolsAll, market.personalToolOrder);
+  const businessTools = sortByKeyOrder(businessToolsAll, market.businessToolOrder);
   const orderedVatCountries = sortByKeyOrder(VAT_COUNTRIES, market.vatCountryOrder);
   const orderedMarketplaces = sortByKeyOrder(MARKETPLACES, market.marketplaceOrder);
   const orderedPayments = sortByKeyOrder(PAYMENT_PROVIDERS, market.paymentOrder);
@@ -38,16 +45,19 @@ export function renderHomePage(lang) {
     )
     .join('');
 
-  const toolsHtml = coreTools
-    .map(
-      (tool) => `<a class="tool-card" href="${escapeHtml(getRoutePath(tool.key, lang))}">
-        <span class="tool-card__tag">${escapeHtml(tool.tag)}</span>
-        <h3 class="tool-card__title">${escapeHtml(tool.title)}</h3>
-        <p class="tool-card__desc">${escapeHtml(tool.desc)}</p>
-        <span class="tool-card__cta">${escapeHtml(t.common.openCalculator)} &rarr;</span>
-      </a>`
-    )
-    .join('');
+  const renderHubRows = (tools) =>
+    tools
+      .map(
+        (tool, idx) => `<a class="hub-tool-item" href="${escapeHtml(getRoutePath(tool.key, lang))}">
+          <span class="hub-tool-item__rank num">${idx + 1}</span>
+          <span class="hub-tool-item__body">
+            <strong class="hub-tool-item__title">${escapeHtml(tool.title)}</strong>
+            <span class="hub-tool-item__desc">${escapeHtml(tool.desc)}</span>
+          </span>
+          <span class="hub-tool-item__arrow" aria-hidden="true">&rarr;</span>
+        </a>`
+      )
+      .join('');
 
   const vatLinksHtml = orderedVatCountries
     .map(
@@ -112,7 +122,36 @@ export function renderHomePage(lang) {
           <h2 id="core-tools-title" class="section-heading">${escapeHtml(t.home.toolsHeading)}</h2>
           <p class="section-sub">${escapeHtml(t.home.toolsSub)}</p>
         </div>
-        <div class="tool-grid">${toolsHtml}</div>
+
+        <div class="hub-grid">
+          <article class="hub-card hub-card--personal" aria-labelledby="hub-personal-title">
+            <header class="hub-card__head">
+              <div class="hub-card__top">
+                <span class="hub-card__badge hub-card__badge--personal">${escapeHtml(t.home.personalHub.badge)}</span>
+                <span class="hub-card__order">${escapeHtml(t.home.personalHub.orderNote)}</span>
+              </div>
+              <h3 id="hub-personal-title" class="hub-card__title">${escapeHtml(t.home.personalHub.title)}</h3>
+              <p class="hub-card__sub">${escapeHtml(t.home.personalHub.subtitle)}</p>
+            </header>
+            <div class="hub-tool-list">
+              ${renderHubRows(personalTools)}
+            </div>
+          </article>
+
+          <article class="hub-card hub-card--business" aria-labelledby="hub-business-title">
+            <header class="hub-card__head">
+              <div class="hub-card__top">
+                <span class="hub-card__badge hub-card__badge--business">${escapeHtml(t.home.businessHub.badge)}</span>
+                <span class="hub-card__order">${escapeHtml(t.home.businessHub.orderNote)}</span>
+              </div>
+              <h3 id="hub-business-title" class="hub-card__title">${escapeHtml(t.home.businessHub.title)}</h3>
+              <p class="hub-card__sub">${escapeHtml(t.home.businessHub.subtitle)}</p>
+            </header>
+            <div class="hub-tool-list">
+              ${renderHubRows(businessTools)}
+            </div>
+          </article>
+        </div>
       </section>
 
       <section class="content-section" aria-labelledby="vat-grid-title">
@@ -168,8 +207,9 @@ export function renderNotFoundPage(lang = 'en') {
         <p>${escapeHtml(t.notFound.body)}</p>
         <div class="empty-state__actions">
           <a class="btn btn--primary" href="${escapeHtml(getRoutePath('home', lang))}">${escapeHtml(t.common.backHome)}</a>
+          <a class="btn btn--secondary" href="${escapeHtml(getRoutePath('salary', lang))}">${escapeHtml(t.nav.salary)}</a>
+          <a class="btn btn--secondary" href="${escapeHtml(getRoutePath('loan', lang))}">${escapeHtml(t.nav.loan)}</a>
           <a class="btn btn--secondary" href="${escapeHtml(getRoutePath('vat', lang))}">${escapeHtml(t.nav.vat)}</a>
-          <a class="btn btn--secondary" href="${escapeHtml(getRoutePath('marketplace', lang))}">${escapeHtml(t.nav.marketplace)}</a>
         </div>
       </section>
     </div>

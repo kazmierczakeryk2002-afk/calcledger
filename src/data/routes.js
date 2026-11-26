@@ -115,6 +115,21 @@ export const ROUTES = {
     de: '/de/zinseszins-rechner/',
     pl: '/pl/kalkulator-procentu-skladanego/',
   },
+  loan: {
+    en: '/loan-mortgage-calculator/',
+    de: '/de/kredit-tilgungs-rechner/',
+    pl: '/pl/kalkulator-kredytu-i-nadplaty/',
+  },
+  salary: {
+    en: '/salary-budget-calculator/',
+    de: '/de/gehalt-budget-rechner/',
+    pl: '/pl/kalkulator-pensji-i-budzetu/',
+  },
+  percentage: {
+    en: '/percentage-discount-calculator/',
+    de: '/de/prozent-rabatt-rechner/',
+    pl: '/pl/kalkulator-procentowy-i-rabatow/',
+  },
   about: {
     en: '/about/',
     de: '/de/ueber-uns/',

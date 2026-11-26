@@ -18,6 +18,9 @@ import { renderRoasPage } from '../src/templates/roas.js';
 import { renderMarginPage } from '../src/templates/margin.js';
 import { renderFreelancePage } from '../src/templates/freelance.js';
 import { renderCompoundPage } from '../src/templates/compound.js';
+import { renderLoanPage } from '../src/templates/loan.js';
+import { renderSalaryPage } from '../src/templates/salary.js';
+import { renderPercentagePage } from '../src/templates/percentage.js';
 import { renderLegalPage } from '../src/templates/legal.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -59,7 +62,7 @@ function generateSitemapXml() {
     const priority =
       pageKey === 'home'
         ? '1.0'
-        : ['vat', 'marketplace', 'payment', 'roas', 'margin', 'freelance', 'compound'].includes(pageKey)
+        : ['vat', 'marketplace', 'payment', 'roas', 'margin', 'freelance', 'compound', 'loan', 'salary', 'percentage'].includes(pageKey)
           ? '0.9'
           : pageKey.startsWith('vat:') ||
               pageKey.startsWith('marketplace:') ||
@@ -149,11 +152,17 @@ function generateLlmsTxt() {
 
   return `# ${SITE_CONFIG.brandName}
 
-> CalcLedger (${SITE_CONFIG.domain}) is a free, privacy-first suite of 7 browser-local financial and e-commerce calculators plus 1-on-1 platform comparisons available in English, German (Deutsch), and Polish (Polski), supporting EUR, USD, GBP, CHF, and PLN with shareable URL parameters and zero account or server tracking.
+> CalcLedger (${SITE_CONFIG.domain}) is a free, privacy-first suite of 10 browser-local financial calculators (Everyday Personal Finance & Business/E-Commerce) plus 1-on-1 platform comparisons available in English, German (Deutsch), and Polish (Polski), supporting EUR, USD, GBP, CHF, and PLN with shareable URL parameters and zero account or server tracking.
 
-## Core Calculators
+## Everyday & Personal Finance Calculators
 
-- [Compound Interest & ROI Calculator](${getAbsoluteUrl('compound', 'en')}): Portfolio growth & reverse savings-goal projection with interactive sliders, capital gains tax (0%, 19% PL Belka, 26.375% DE Abgeltungssteuer), inflation-adjusted real purchasing power, SVG chart, year-by-year table, and CSV export. ([DE](${getAbsoluteUrl('compound', 'de')}) · [PL](${getAbsoluteUrl('compound', 'pl')}))
+- [Salary, Pay Raise & 50/30/20 Budget Calculator](${getAbsoluteUrl('salary', 'en')}): Net or Gross-to-Net salary conversion (monthly, yearly, daily, hourly), pay raise simulator, 50/30/20 budget planner, 6-month emergency fund, and purchase-cost-in-work-hours check. ([DE](${getAbsoluteUrl('salary', 'de')}) · [PL](${getAbsoluteUrl('salary', 'pl')}))
+- [Loan, Mortgage & Extra Payment Calculator](${getAbsoluteUrl('loan', 'en')}): Monthly payment, total interest, monthly & one-time overpayment savings (years & money saved), remaining-balance SVG chart, and downloadable CSV amortization schedule. ([DE](${getAbsoluteUrl('loan', 'de')}) · [PL](${getAbsoluteUrl('loan', 'pl')}))
+- [Savings, Compound Interest & ROI Calculator](${getAbsoluteUrl('compound', 'en')}): Portfolio growth & reverse savings-goal projection with interactive sliders, capital gains tax (0%, 19% PL Belka, 26.375% DE Abgeltungssteuer), inflation-adjusted real purchasing power, SVG chart, year-by-year table, and CSV export. ([DE](${getAbsoluteUrl('compound', 'de')}) · [PL](${getAbsoluteUrl('compound', 'pl')}))
+- [Percentage, Discount & Change Calculator](${getAbsoluteUrl('percentage', 'en')}): Sale discounts with stacked extra promo codes, X% of a number, and percentage increase/decrease with clickable discount reference table. ([DE](${getAbsoluteUrl('percentage', 'de')}) · [PL](${getAbsoluteUrl('percentage', 'pl')}))
+
+## Business, E-Commerce & B2B Calculators
+
 - [Profit Margin & Markup Calculator](${getAbsoluteUrl('margin', 'en')}): Cost, selling price, gross margin %, markup %, and clickable Margin-to-Markup reference table. ([DE](${getAbsoluteUrl('margin', 'de')}) · [PL](${getAbsoluteUrl('margin', 'pl')}))
 - [VAT / MwSt Calculator (Net ↔ Gross)](${getAbsoluteUrl('vat', 'en')}): Add or reverse-calculate VAT across 15 European countries and custom rates. ([DE](${getAbsoluteUrl('vat', 'de')}) · [PL](${getAbsoluteUrl('vat', 'pl')}))
 - [Marketplace Seller Profit & Fee Calculator](${getAbsoluteUrl('marketplace', 'en')}): Net profit per order & monthly volume, return rate modeling, margin, ROI, ad spend (ACOS), VAT deduction, Break-Even Price, Target Margin Price, Break-Even ACOS, and live 6-platform side-by-side comparison (Allegro, Amazon FBA, Etsy, eBay, Shopify, Upwork). ([DE](${getAbsoluteUrl('marketplace', 'de')}) · [PL](${getAbsoluteUrl('marketplace', 'pl')}))
@@ -180,7 +189,7 @@ ${payLines}
 ## Full Reference & Policies
 
 - [Full Machine-Readable Reference (Formulas & Tax Tables)](${SITE_CONFIG.domain}/llms-full.txt)
-- [XML Sitemap (117 Localized Pages)](${SITE_CONFIG.domain}/sitemap.xml)
+- [XML Sitemap (126 Localized Pages)](${SITE_CONFIG.domain}/sitemap.xml)
 - [About CalcLedger](${getAbsoluteUrl('about', 'en')})
 - [Privacy Policy](${getAbsoluteUrl('privacy', 'en')})
 - [Terms & Disclaimer](${getAbsoluteUrl('terms', 'en')})
@@ -221,6 +230,9 @@ Contact: ${SITE_CONFIG.contactEmail}
 9. **Marketplace Break-Even Selling Price:** R_be = (COGS + Seller Shipping + Fixed Fee) / (1 - VAT_share_of_gross - Commission% - Payment% - ACOS%)
 10. **Freelance B2B Hourly Rate:** Required Revenue = (Target Net Income / (1 - Tax%)) + Annual Overhead; Hourly Rate = Required Revenue / (Working Weeks * Hours/Week * Billable Utilization %)
 11. **Compound Interest (with monthly contributions):** Compounded monthly-equivalent effective growth from nominal rate r and frequency n per year over t years.
+12. **Loan / Mortgage Annuity Payment:** Monthly Payment = P * [r * (1 + r)^n] / [(1 + r)^n - 1], with monthly extra principal and lump-sum overpayment amortization.
+13. **Salary Hourly Net & 50/30/20 Budget:** Hourly Net = Annual Net / (Hours/Week * 52); Purchase Work Hours = Purchase Price / Hourly Net.
+14. **Stacked Discount & % Change:** Final Price = Price * (1 - d1) * (1 - d2); % Change = ((New - Old) / Old) * 100.
 
 ## European VAT Rates Table (15 Jurisdictions)
 
@@ -369,6 +381,14 @@ function build() {
 
     // 8. Compound Interest & ROI
     writeRouteHtml(getRoutePath('compound', lang), renderCompoundPage(lang));
+    pageCount++;
+
+    // 8b. Everyday & Personal Finance Calculators (Loan, Salary/Budget, Percentage/Discount)
+    writeRouteHtml(getRoutePath('loan', lang), renderLoanPage(lang));
+    pageCount++;
+    writeRouteHtml(getRoutePath('salary', lang), renderSalaryPage(lang));
+    pageCount++;
+    writeRouteHtml(getRoutePath('percentage', lang), renderPercentagePage(lang));
     pageCount++;
 
     // 9. Legal / AdSense Compliance Pages

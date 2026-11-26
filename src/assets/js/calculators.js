@@ -1778,6 +1778,795 @@
     });
   }
 
+  /* ------------------------------------------------------------------------
+     9. Loan, Mortgage & Early Payoff Calculator + SVG Chart + CSV
+     ------------------------------------------------------------------------ */
+  function initLoan(shell) {
+    const CL = window.CalcLedger;
+    const I18N = CL.I18N;
+    const defaultCurrency = shell.getAttribute('data-default-currency') || 'EUR';
+
+    const elAmount = document.getElementById('loan-amount');
+    const elRate = document.getElementById('loan-rate');
+    const elRateSlider = document.getElementById('loan-rate-slider');
+    const elYears = document.getElementById('loan-years');
+    const elYearsSlider = document.getElementById('loan-years-slider');
+    const elExtra = document.getElementById('loan-extra');
+    const elLump = document.getElementById('loan-lump');
+
+    const defaults = {
+      amount: elAmount.value,
+      rate: elRate.value,
+      years: elYears.value,
+      extra: elExtra.value,
+      lump: elLump.value,
+    };
+
+    const outMonthly = document.getElementById('loan-out-monthly');
+    const outSaved = document.getElementById('loan-out-saved');
+    const outTimeSaved = document.getElementById('loan-out-time-saved');
+    const outPayoff = document.getElementById('loan-out-payoff');
+    const outInterest = document.getElementById('loan-out-interest');
+    const outTotal = document.getElementById('loan-out-total');
+    const outBaseInt = document.getElementById('loan-out-base-int');
+    const outMonthlyTotal = document.getElementById('loan-out-monthly-total');
+    const barPrincipal = document.getElementById('loan-bar-principal');
+    const barInterest = document.getElementById('loan-bar-interest');
+    const barSaved = document.getElementById('loan-bar-saved');
+    const legPrincipal = document.getElementById('loan-leg-principal');
+    const legInterest = document.getElementById('loan-leg-interest');
+    const legSaved = document.getElementById('loan-leg-saved');
+    const svgChart = document.getElementById('loan-svg-chart');
+    const tableBody = document.getElementById('loan-table-body');
+
+    let lastSummary = '';
+    let lastRows = [];
+    let lastCur = defaultCurrency;
+    const currency = bindCurrencySwitcher(shell, defaultCurrency, () => calculate(true));
+
+    function fmtDuration(totalMonths) {
+      const m = Math.max(0, Math.round(totalMonths));
+      if (m === 0) return I18N.loan.noSavings || '0 mos';
+      const yrs = Math.floor(m / 12);
+      const rem = m % 12;
+      const yUnit = I18N.loan.unitYears || 'yrs';
+      const mUnit = I18N.loan.unitMonths || 'mos';
+      if (yrs > 0 && rem > 0) return `${yrs} ${yUnit} ${rem} ${mUnit}`;
+      if (yrs > 0) return `${yrs} ${yUnit}`;
+      return `${rem} ${mUnit}`;
+    }
+
+    function simulateSchedule(principal, monthlyRate, basePayment, extraMonthly, lumpSum, maxMonths) {
+      let balance = Math.max(0, principal);
+      let totalInterest = 0;
+      let months = 0;
+      const yearly = [];
+
+      let yrPaid = 0;
+      let yrPrincipal = 0;
+      let yrInterest = 0;
+
+      if (lumpSum > 0 && balance > 0) {
+        const appliedLump = Math.min(balance, lumpSum);
+        balance -= appliedLump;
+        yrPaid += appliedLump;
+        yrPrincipal += appliedLump;
+      }
+
+      while (balance > 0.01 && months < maxMonths + 12) {
+        months++;
+        const interest = balance * monthlyRate;
+        const scheduledPrincipal = Math.max(0, basePayment - interest);
+        let principalPaid = scheduledPrincipal + extraMonthly;
+        if (principalPaid > balance) {
+          principalPaid = balance;
+        }
+        const payment = interest + principalPaid;
+        balance = Math.max(0, balance - principalPaid);
+        totalInterest += interest;
+
+        yrPaid += payment;
+        yrPrincipal += principalPaid;
+        yrInterest += interest;
+
+        if (months % 12 === 0 || balance <= 0.01) {
+          yearly.push({
+            year: Math.ceil(months / 12),
+            paid: yrPaid,
+            principal: yrPrincipal,
+            interest: yrInterest,
+            balance,
+          });
+          yrPaid = 0;
+          yrPrincipal = 0;
+          yrInterest = 0;
+        }
+      }
+
+      if (yearly.length === 0) {
+        yearly.push({ year: 1, paid: yrPaid, principal: yrPrincipal, interest: 0, balance: 0 });
+      }
+
+      return { months, totalInterest, yearly };
+    }
+
+    function renderSvgChart(stdYearly, extraYearly, principal, cur) {
+      const W = 760;
+      const H = 280;
+      const padL = 74;
+      const padR = 20;
+      const padT = 18;
+      const padB = 34;
+      const plotW = W - padL - padR;
+      const plotH = H - padT - padB;
+      const maxVal = Math.max(principal, 1);
+      const totalYears = Math.max(stdYearly.length, 1);
+      const parts = [];
+
+      for (let i = 0; i <= 4; i++) {
+        const ratio = i / 4;
+        const y = padT + plotH - ratio * plotH;
+        const tickVal = maxVal * ratio;
+        parts.push(`<line x1="${padL}" y1="${y.toFixed(1)}" x2="${W - padR}" y2="${y.toFixed(1)}" stroke="#E4E0D7" stroke-width="1" />`);
+        parts.push(`<text x="${padL - 8}" y="${(y + 4).toFixed(1)}" text-anchor="end" fill="#6B7A88" font-size="11" font-family="JetBrains Mono, monospace">${CL.formatCompactMoney(tickVal, cur)}</text>`);
+      }
+
+      const xForYear = (yIdx) => padL + (yIdx / totalYears) * plotW;
+      const yForVal = (val) => padT + plotH - (Math.max(0, val) / maxVal) * plotH;
+
+      const stdPts = [`${xForYear(0).toFixed(1)},${yForVal(principal).toFixed(1)}`];
+      stdYearly.forEach((r) => {
+        stdPts.push(`${xForYear(r.year).toFixed(1)},${yForVal(r.balance).toFixed(1)}`);
+      });
+
+      const extPts = [`${xForYear(0).toFixed(1)},${yForVal(principal).toFixed(1)}`];
+      extraYearly.forEach((r) => {
+        extPts.push(`${xForYear(r.year).toFixed(1)},${yForVal(r.balance).toFixed(1)}`);
+      });
+
+      const extArea = `${extPts.join(' ')} ${xForYear(extraYearly[extraYearly.length - 1].year).toFixed(1)},${(padT + plotH).toFixed(1)} ${xForYear(0).toFixed(1)},${(padT + plotH).toFixed(1)}`;
+
+      parts.push(`<polygon points="${extArea}" fill="rgba(15, 92, 72, 0.12)" />`);
+      parts.push(`<polyline points="${stdPts.join(' ')}" fill="none" stroke="#748494" stroke-width="2.2" stroke-dasharray="6 4" />`);
+      parts.push(`<polyline points="${extPts.join(' ')}" fill="none" stroke="#0F5C48" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" />`);
+
+      const labelEvery = totalYears > 25 ? 5 : totalYears > 15 ? 3 : totalYears > 10 ? 2 : 1;
+      for (let yr = 0; yr <= totalYears; yr++) {
+        if (yr === 0 || yr === totalYears || yr % labelEvery === 0) {
+          parts.push(`<text x="${xForYear(yr).toFixed(1)}" y="${H - 10}" text-anchor="middle" fill="#4A5A6A" font-size="11" font-family="JetBrains Mono, monospace">${yr}</text>`);
+        }
+      }
+
+      svgChart.innerHTML = parts.join('');
+    }
+
+    function exportCsv() {
+      if (!lastRows.length) return;
+      const esc = (v) => `"${String(v).replace(/"/g, '""')}"`;
+      const headers = [
+        I18N.loan.colYear,
+        `${I18N.loan.colPayment} (${lastCur})`,
+        `${I18N.loan.colPrincipal} (${lastCur})`,
+        `${I18N.loan.colInterest} (${lastCur})`,
+        `${I18N.loan.colBalance} (${lastCur})`,
+        `${I18N.loan.colStdBalance} (${lastCur})`,
+      ];
+      const lines = [headers.map(esc).join(',')];
+      lastRows.forEach((r) => {
+        lines.push([r.year, r.paid.toFixed(2), r.principal.toFixed(2), r.interest.toFixed(2), r.balance.toFixed(2), r.stdBalance.toFixed(2)].map(esc).join(','));
+      });
+      const blob = new Blob([`\uFEFF${lines.join('\r\n')}\r\n`], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `calcledger-loan-${lastCur.toLowerCase()}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      CL.showToast(I18N.loan.downloadedCsv || 'CSV downloaded');
+    }
+
+    function getState() {
+      return {
+        cur: currency.get(),
+        amt: elAmount.value,
+        r: elRate.value,
+        y: elYears.value,
+        extra: elExtra.value,
+        lump: elLump.value,
+      };
+    }
+
+    function calculate(syncUrl) {
+      const principal = Math.max(100, CL.parseNum(elAmount.value, 100000));
+      const annualRate = Math.max(0, Math.min(40, CL.parseNum(elRate.value, 0)));
+      const years = Math.max(1, Math.min(40, Math.round(CL.parseNum(elYears.value, 25))));
+      const extraMonthly = Math.max(0, CL.parseNum(elExtra.value, 0));
+      const lumpSum = Math.max(0, CL.parseNum(elLump.value, 0));
+
+      if (elRateSlider) elRateSlider.value = String(Math.min(18, annualRate));
+      if (elYearsSlider) elYearsSlider.value = String(years);
+
+      shell.querySelectorAll('[data-loan-amt]').forEach((btn) => {
+        btn.classList.toggle('is-active', Math.abs(CL.parseNum(btn.getAttribute('data-loan-amt'), -1) - principal) < 1);
+      });
+      shell.querySelectorAll('[data-loan-extra]').forEach((btn) => {
+        btn.classList.toggle('is-active', Math.abs(CL.parseNum(btn.getAttribute('data-loan-extra'), -1) - extraMonthly) < 0.01);
+      });
+
+      const n = years * 12;
+      const r = annualRate / 100 / 12;
+      let baseMonthly = 0;
+      if (r > 1e-9) {
+        const pow = Math.pow(1 + r, n);
+        baseMonthly = (principal * r * pow) / (pow - 1);
+      } else {
+        baseMonthly = principal / n;
+      }
+
+      const std = simulateSchedule(principal, r, baseMonthly, 0, 0, n);
+      const ext = simulateSchedule(principal, r, baseMonthly, extraMonthly, lumpSum, n);
+
+      const interestSaved = Math.max(0, std.totalInterest - ext.totalInterest);
+      const monthsSaved = Math.max(0, std.months - ext.months);
+      const totalRepaid = principal + ext.totalInterest;
+      const cur = currency.get();
+
+      outMonthly.textContent = CL.formatMoney(baseMonthly, cur);
+      outSaved.textContent = CL.formatMoney(interestSaved, cur);
+      outTimeSaved.textContent = fmtDuration(monthsSaved);
+      outPayoff.textContent = fmtDuration(ext.months);
+      outInterest.textContent = CL.formatMoney(ext.totalInterest, cur);
+      outTotal.textContent = CL.formatMoney(totalRepaid, cur);
+      outBaseInt.textContent = CL.formatMoney(std.totalInterest, cur);
+      outMonthlyTotal.textContent = CL.formatMoney(baseMonthly + extraMonthly, cur);
+
+      const barDenom = Math.max(principal + std.totalInterest, 1);
+      const pctP = (principal / barDenom) * 100;
+      const pctI = (ext.totalInterest / barDenom) * 100;
+      const pctS = (interestSaved / barDenom) * 100;
+
+      barPrincipal.style.width = `${pctP.toFixed(2)}%`;
+      barInterest.style.width = `${pctI.toFixed(2)}%`;
+      barSaved.style.width = `${pctS.toFixed(2)}%`;
+      legPrincipal.textContent = CL.formatPercent(pctP, 1);
+      legInterest.textContent = CL.formatPercent(pctI, 1);
+      legSaved.textContent = CL.formatPercent(pctS, 1);
+
+      renderSvgChart(std.yearly, ext.yearly, principal, cur);
+
+      const mergedRows = std.yearly.map((sr, idx) => {
+        const er = ext.yearly[idx];
+        return {
+          year: sr.year,
+          paid: er ? er.paid : 0,
+          principal: er ? er.principal : 0,
+          interest: er ? er.interest : 0,
+          balance: er ? er.balance : 0,
+          stdBalance: sr.balance,
+        };
+      });
+
+      lastRows = mergedRows;
+      lastCur = cur;
+
+      tableBody.innerHTML = mergedRows
+        .map(
+          (row) => `<tr>
+            <td class="num"><strong>${row.year}</strong></td>
+            <td class="num">${CL.formatMoney(row.paid, cur)}</td>
+            <td class="num">${CL.formatMoney(row.principal, cur)}</td>
+            <td class="num">${CL.formatMoney(row.interest, cur)}</td>
+            <td class="num"><strong>${CL.formatMoney(row.balance, cur)}</strong></td>
+            <td class="num">${CL.formatMoney(row.stdBalance, cur)}</td>
+          </tr>`
+        )
+        .join('');
+
+      lastSummary = [
+        `${I18N.loan.outMonthly}: ${CL.formatMoney(baseMonthly, cur)}`,
+        `${I18N.loan.outInterestSaved}: ${CL.formatMoney(interestSaved, cur)}`,
+        `${I18N.loan.outTimeSaved}: ${fmtDuration(monthsSaved)}`,
+        `${I18N.loan.outTotalInterest}: ${CL.formatMoney(ext.totalInterest, cur)}`,
+      ].join(' | ');
+
+      if (syncUrl) CL.syncUrlState(getState());
+    }
+
+    const params = CL.readParams();
+    if (params.has('cur')) currency.set(params.get('cur').toUpperCase(), true);
+    if (params.has('amt')) elAmount.value = params.get('amt');
+    if (params.has('r')) elRate.value = params.get('r');
+    if (params.has('y')) elYears.value = params.get('y');
+    if (params.has('extra')) elExtra.value = params.get('extra');
+    if (params.has('lump')) elLump.value = params.get('lump');
+
+    calculate(false);
+
+    [elAmount, elRate, elYears, elExtra, elLump].forEach((el) => {
+      el.addEventListener('input', () => calculate(true));
+    });
+    if (elRateSlider) {
+      elRateSlider.addEventListener('input', () => {
+        elRate.value = elRateSlider.value;
+        calculate(true);
+      });
+    }
+    if (elYearsSlider) {
+      elYearsSlider.addEventListener('input', () => {
+        elYears.value = elYearsSlider.value;
+        calculate(true);
+      });
+    }
+    shell.querySelectorAll('[data-loan-amt]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        elAmount.value = btn.getAttribute('data-loan-amt');
+        calculate(true);
+      });
+    });
+    shell.querySelectorAll('[data-loan-extra]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        elExtra.value = btn.getAttribute('data-loan-extra');
+        calculate(true);
+      });
+    });
+
+    document.getElementById('loan-copy-result').addEventListener('click', () => {
+      CL.copyText(lastSummary, I18N.copiedResult);
+    });
+    const btnCsv = document.getElementById('loan-download-csv');
+    if (btnCsv) btnCsv.addEventListener('click', exportCsv);
+    document.getElementById('loan-copy-link').addEventListener('click', () => {
+      CL.copyText(CL.buildShareUrl(getState()), I18N.copiedLink);
+    });
+    document.getElementById('loan-reset').addEventListener('click', () => {
+      currency.set(defaultCurrency, true);
+      elAmount.value = defaults.amount;
+      elRate.value = defaults.rate;
+      elYears.value = defaults.years;
+      elExtra.value = defaults.extra;
+      elLump.value = defaults.lump;
+      calculate(true);
+    });
+  }
+
+  /* ------------------------------------------------------------------------
+     10. Salary, Pay Raise & 50/30/20 Budget Calculator
+     ------------------------------------------------------------------------ */
+  function initSalary(shell) {
+    const CL = window.CalcLedger;
+    const I18N = CL.I18N;
+    const defaultCurrency = shell.getAttribute('data-default-currency') || 'EUR';
+
+    const elAmount = document.getElementById('sal-amount');
+    const elAmountLabel = document.getElementById('sal-amount-label');
+    const elPeriod = document.getElementById('sal-period');
+    const elTaxWrap = document.getElementById('sal-tax-wrap');
+    const elTax = document.getElementById('sal-tax');
+    const elHours = document.getElementById('sal-hours');
+    const elRaise = document.getElementById('sal-raise');
+    const elRaiseSlider = document.getElementById('sal-raise-slider');
+    const elRule = document.getElementById('sal-rule');
+    const elPurchase = document.getElementById('sal-purchase');
+
+    const defaults = {
+      amount: elAmount.value,
+      period: elPeriod.value,
+      tax: elTax.value,
+      hours: elHours.value,
+      raise: elRaise.value,
+      rule: elRule.value,
+      purchase: elPurchase.value,
+    };
+
+    const outMonthly = document.getElementById('sal-out-monthly');
+    const outHourly = document.getElementById('sal-out-hourly');
+    const outDaily = document.getElementById('sal-out-daily');
+    const outYearly = document.getElementById('sal-out-yearly');
+    const outRaiseMo = document.getElementById('sal-out-raise-mo');
+    const outRaiseYr = document.getElementById('sal-out-raise-yr');
+    const outWorkHours = document.getElementById('sal-out-workhours');
+    const outEmergency = document.getElementById('sal-out-emergency');
+
+    const barNeeds = document.getElementById('sal-bar-needs');
+    const barWants = document.getElementById('sal-bar-wants');
+    const barSavings = document.getElementById('sal-bar-savings');
+    const legNeeds = document.getElementById('sal-leg-needs');
+    const legWants = document.getElementById('sal-leg-wants');
+    const legSavings = document.getElementById('sal-leg-savings');
+
+    const tNeedsPct = document.getElementById('sal-t-needs-pct');
+    const tWantsPct = document.getElementById('sal-t-wants-pct');
+    const tSavingsPct = document.getElementById('sal-t-savings-pct');
+    const tNeedsMo = document.getElementById('sal-t-needs-mo');
+    const tWantsMo = document.getElementById('sal-t-wants-mo');
+    const tSavingsMo = document.getElementById('sal-t-savings-mo');
+    const tNeedsYr = document.getElementById('sal-t-needs-yr');
+    const tWantsYr = document.getElementById('sal-t-wants-yr');
+    const tSavingsYr = document.getElementById('sal-t-savings-yr');
+
+    let mode = 'net'; // 'net' | 'gross'
+    let lastSummary = '';
+    const currency = bindCurrencySwitcher(shell, defaultCurrency, () => calculate(true));
+
+    function setMode(nextMode, sync) {
+      mode = nextMode === 'gross' ? 'gross' : 'net';
+      shell.querySelectorAll('[data-sal-mode]').forEach((btn) => {
+        const active = btn.getAttribute('data-sal-mode') === mode;
+        btn.classList.toggle('is-active', active);
+        btn.setAttribute('aria-pressed', String(active));
+      });
+      if (elTaxWrap) elTaxWrap.hidden = mode !== 'gross';
+      if (elAmountLabel) {
+        elAmountLabel.textContent = mode === 'gross' ? I18N.salary.amountLabelGross : I18N.salary.amountLabelNet;
+      }
+      calculate(sync);
+    }
+
+    function getState() {
+      return {
+        cur: currency.get(),
+        mode,
+        amt: elAmount.value,
+        per: elPeriod.value,
+        tax: elTax.value,
+        hrs: elHours.value,
+        raise: elRaise.value,
+        rule: elRule.value,
+        buy: elPurchase.value,
+      };
+    }
+
+    function calculate(syncUrl) {
+      const amount = Math.max(0, CL.parseNum(elAmount.value, 0));
+      const period = elPeriod.value || 'monthly';
+      const taxPct = Math.max(0, Math.min(75, CL.parseNum(elTax.value, 25)));
+      const hoursPerWeek = Math.max(5, Math.min(80, CL.parseNum(elHours.value, 40)));
+      const raisePct = Math.max(0, Math.min(100, CL.parseNum(elRaise.value, 0)));
+      const purchase = Math.max(0, CL.parseNum(elPurchase.value, 0));
+
+      if (elRaiseSlider) elRaiseSlider.value = String(Math.min(50, raisePct));
+      shell.querySelectorAll('[data-sal-tax]').forEach((btn) => {
+        btn.classList.toggle('is-active', Math.abs(CL.parseNum(btn.getAttribute('data-sal-tax'), -1) - taxPct) < 0.1);
+      });
+
+      const annualHours = hoursPerWeek * 52;
+      let annualInput = 0;
+      if (period === 'monthly') annualInput = amount * 12;
+      else if (period === 'yearly') annualInput = amount;
+      else annualInput = amount * annualHours;
+
+      const annualNet = mode === 'gross' ? annualInput * (1 - taxPct / 100) : annualInput;
+      const monthlyNet = annualNet / 12;
+      const hourlyNet = annualHours > 0 ? annualNet / annualHours : 0;
+      const dailyNet = hourlyNet * 8;
+
+      const raisedMonthly = monthlyNet * (1 + raisePct / 100);
+      const raiseYearlyGain = annualNet * (raisePct / 100);
+
+      const ruleParts = (elRule.value || '50-30-20').split('-').map((n) => parseInt(n, 10) || 0);
+      const pNeeds = ruleParts[0] || 50;
+      const pWants = ruleParts[1] || 30;
+      const pSavings = ruleParts[2] || 20;
+
+      const needsMo = monthlyNet * (pNeeds / 100);
+      const wantsMo = monthlyNet * (pWants / 100);
+      const savingsMo = monthlyNet * (pSavings / 100);
+      const emergencyFund = needsMo * 6;
+
+      const workHours = hourlyNet > 0 ? purchase / hourlyNet : 0;
+      const workDays = workHours / 8;
+      const workText = (I18N.salary.workHoursFmt || '{hours} h ({days} d)')
+        .replace('{hours}', CL.formatNumber(workHours, 1))
+        .replace('{days}', CL.formatNumber(workDays, 1));
+
+      const cur = currency.get();
+      outMonthly.textContent = CL.formatMoney(monthlyNet, cur);
+      outHourly.textContent = CL.formatMoney(hourlyNet, cur);
+      outDaily.textContent = CL.formatMoney(dailyNet, cur);
+      outYearly.textContent = CL.formatMoney(annualNet, cur);
+      outRaiseMo.textContent = CL.formatMoney(raisedMonthly, cur);
+      outRaiseYr.textContent = `+${CL.formatMoney(raiseYearlyGain, cur)}`;
+      outWorkHours.textContent = workText;
+      outEmergency.textContent = CL.formatMoney(emergencyFund, cur);
+
+      barNeeds.style.width = `${pNeeds}%`;
+      barWants.style.width = `${pWants}%`;
+      barSavings.style.width = `${pSavings}%`;
+      legNeeds.textContent = `${pNeeds}%`;
+      legWants.textContent = `${pWants}%`;
+      legSavings.textContent = `${pSavings}%`;
+
+      tNeedsPct.textContent = `${pNeeds}%`;
+      tWantsPct.textContent = `${pWants}%`;
+      tSavingsPct.textContent = `${pSavings}%`;
+      tNeedsMo.textContent = CL.formatMoney(needsMo, cur);
+      tWantsMo.textContent = CL.formatMoney(wantsMo, cur);
+      tSavingsMo.textContent = CL.formatMoney(savingsMo, cur);
+      tNeedsYr.textContent = CL.formatMoney(needsMo * 12, cur);
+      tWantsYr.textContent = CL.formatMoney(wantsMo * 12, cur);
+      tSavingsYr.textContent = CL.formatMoney(savingsMo * 12, cur);
+
+      lastSummary = [
+        `${I18N.salary.outMonthlyNet}: ${CL.formatMoney(monthlyNet, cur)}`,
+        `${I18N.salary.outHourlyNet}: ${CL.formatMoney(hourlyNet, cur)}`,
+        `${I18N.salary.outYearlyNet}: ${CL.formatMoney(annualNet, cur)}`,
+      ].join(' | ');
+
+      if (syncUrl) CL.syncUrlState(getState());
+    }
+
+    const params = CL.readParams();
+    if (params.has('cur')) currency.set(params.get('cur').toUpperCase(), true);
+    if (params.has('amt')) elAmount.value = params.get('amt');
+    if (params.has('per')) elPeriod.value = params.get('per');
+    if (params.has('tax')) elTax.value = params.get('tax');
+    if (params.has('hrs')) elHours.value = params.get('hrs');
+    if (params.has('raise')) elRaise.value = params.get('raise');
+    if (params.has('rule')) elRule.value = params.get('rule');
+    if (params.has('buy')) elPurchase.value = params.get('buy');
+
+    setMode(params.get('mode') === 'gross' ? 'gross' : 'net', false);
+
+    shell.querySelectorAll('[data-sal-mode]').forEach((btn) => {
+      btn.addEventListener('click', () => setMode(btn.getAttribute('data-sal-mode'), true));
+    });
+    shell.querySelectorAll('[data-sal-tax]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        elTax.value = btn.getAttribute('data-sal-tax');
+        calculate(true);
+      });
+    });
+
+    [elAmount, elTax, elHours, elRaise, elPurchase].forEach((el) => {
+      el.addEventListener('input', () => calculate(true));
+    });
+    [elPeriod, elRule].forEach((el) => {
+      el.addEventListener('change', () => calculate(true));
+    });
+    if (elRaiseSlider) {
+      elRaiseSlider.addEventListener('input', () => {
+        elRaise.value = elRaiseSlider.value;
+        calculate(true);
+      });
+    }
+
+    document.getElementById('sal-copy-result').addEventListener('click', () => {
+      CL.copyText(lastSummary, I18N.copiedResult);
+    });
+    document.getElementById('sal-copy-link').addEventListener('click', () => {
+      CL.copyText(CL.buildShareUrl(getState()), I18N.copiedLink);
+    });
+    document.getElementById('sal-reset').addEventListener('click', () => {
+      currency.set(defaultCurrency, true);
+      elAmount.value = defaults.amount;
+      elPeriod.value = defaults.period;
+      elTax.value = defaults.tax;
+      elHours.value = defaults.hours;
+      elRaise.value = defaults.raise;
+      elRule.value = defaults.rule;
+      elPurchase.value = defaults.purchase;
+      setMode('net', true);
+    });
+  }
+
+  /* ------------------------------------------------------------------------
+     11. Percentage, Discount & Change Calculator
+     ------------------------------------------------------------------------ */
+  function initPercentage(shell) {
+    const CL = window.CalcLedger;
+    const I18N = CL.I18N;
+    const defaultCurrency = shell.getAttribute('data-default-currency') || 'EUR';
+
+    const panelDiscount = document.getElementById('pct-panel-discount');
+    const panelOf = document.getElementById('pct-panel-of');
+    const panelChange = document.getElementById('pct-panel-change');
+
+    const elOrigPrice = document.getElementById('pct-orig-price');
+    const elDisc = document.getElementById('pct-disc');
+    const elExtraDisc = document.getElementById('pct-extra-disc');
+    const elPartRate = document.getElementById('pct-part-rate');
+    const elBaseNum = document.getElementById('pct-base-num');
+    const elFrom = document.getElementById('pct-from');
+    const elTo = document.getElementById('pct-to');
+
+    const heroBox = document.getElementById('pct-hero-box');
+    const outPrimaryLabel = document.getElementById('pct-out-primary-label');
+    const outPrimary = document.getElementById('pct-out-primary');
+    const k1Label = document.getElementById('pct-k1-label');
+    const k1Val = document.getElementById('pct-k1-val');
+    const k2Label = document.getElementById('pct-k2-label');
+    const k2Val = document.getElementById('pct-k2-val');
+    const barWrap = document.getElementById('pct-bar-wrap');
+    const barA = document.getElementById('pct-bar-a');
+    const barB = document.getElementById('pct-bar-b');
+    const legend = document.getElementById('pct-legend');
+
+    let mode = 'discount'; // 'discount' | 'of' | 'change'
+    let lastSummary = '';
+    const currency = bindCurrencySwitcher(shell, defaultCurrency, () => calculate(true));
+
+    function setMode(nextMode, sync) {
+      mode = ['discount', 'of', 'change'].includes(nextMode) ? nextMode : 'discount';
+      shell.querySelectorAll('[data-pct-mode]').forEach((btn) => {
+        const active = btn.getAttribute('data-pct-mode') === mode;
+        btn.classList.toggle('is-active', active);
+        btn.setAttribute('aria-pressed', String(active));
+      });
+      panelDiscount.hidden = mode !== 'discount';
+      panelOf.hidden = mode !== 'of';
+      panelChange.hidden = mode !== 'change';
+      calculate(sync);
+    }
+
+    function getState() {
+      return {
+        cur: currency.get(),
+        mode,
+        p: elOrigPrice.value,
+        d1: elDisc.value,
+        d2: elExtraDisc.value,
+        r: elPartRate.value,
+        base: elBaseNum.value,
+        from: elFrom.value,
+        to: elTo.value,
+      };
+    }
+
+    function calculate(syncUrl) {
+      const cur = currency.get();
+      heroBox.classList.remove('is-loss');
+
+      if (mode === 'discount') {
+        const orig = Math.max(0, CL.parseNum(elOrigPrice.value, 0));
+        const d1 = Math.max(0, Math.min(100, CL.parseNum(elDisc.value, 0)));
+        const d2 = Math.max(0, Math.min(100, CL.parseNum(elExtraDisc.value, 0)));
+
+        const after1 = orig * (1 - d1 / 100);
+        const finalPrice = after1 * (1 - d2 / 100);
+        const saved = Math.max(0, orig - finalPrice);
+        const effDisc = orig > 0 ? (saved / orig) * 100 : 0;
+        const payPct = Math.max(0, 100 - effDisc);
+
+        outPrimaryLabel.textContent = I18N.percentage.outFinalPrice;
+        outPrimary.textContent = CL.formatMoney(finalPrice, cur);
+        k1Label.textContent = I18N.percentage.outYouSave;
+        k1Val.textContent = CL.formatMoney(saved, cur);
+        k2Label.textContent = I18N.percentage.outEffDiscount;
+        k2Val.textContent = CL.formatPercent(effDisc, 2);
+
+        barWrap.hidden = false;
+        barA.style.width = `${payPct.toFixed(2)}%`;
+        barB.style.width = `${effDisc.toFixed(2)}%`;
+        legend.innerHTML = [
+          `<span><i class="dot seg-navy"></i>${I18N.percentage.outFinalPrice} <strong class="num">${CL.formatPercent(payPct, 1)}</strong></span>`,
+          `<span><i class="dot seg-emerald"></i>${I18N.percentage.outYouSave} <strong class="num">${CL.formatPercent(effDisc, 1)}</strong></span>`,
+        ].join('');
+
+        shell.querySelectorAll('[data-pct-disc]').forEach((btn) => {
+          btn.classList.toggle('is-active', Math.abs(CL.parseNum(btn.getAttribute('data-pct-disc'), -1) - d1) < 0.01);
+        });
+        shell.querySelectorAll('[data-pct-extra]').forEach((btn) => {
+          btn.classList.toggle('is-active', Math.abs(CL.parseNum(btn.getAttribute('data-pct-extra'), -1) - d2) < 0.01);
+        });
+        document.querySelectorAll('[data-apply-disc]').forEach((row) => {
+          row.classList.toggle('is-selected', Math.abs(CL.parseNum(row.getAttribute('data-apply-disc'), -1) - d1) < 0.01 && d2 === 0);
+        });
+
+        lastSummary = `${I18N.percentage.outFinalPrice}: ${CL.formatMoney(finalPrice, cur)} | ${I18N.percentage.outYouSave}: ${CL.formatMoney(saved, cur)} (${CL.formatPercent(effDisc, 1)})`;
+      } else if (mode === 'of') {
+        const pct = Math.max(0, CL.parseNum(elPartRate.value, 0));
+        const base = CL.parseNum(elBaseNum.value, 0);
+        const part = (base * pct) / 100;
+        const remainder = base - part;
+        const plus = base + part;
+
+        outPrimaryLabel.textContent = I18N.percentage.outOfResult;
+        outPrimary.textContent = CL.formatMoney(part, cur);
+        k1Label.textContent = I18N.percentage.outRemainder;
+        k1Val.textContent = CL.formatMoney(remainder, cur);
+        k2Label.textContent = I18N.percentage.outPlusPct;
+        k2Val.textContent = CL.formatMoney(plus, cur);
+
+        const clamped = Math.max(0, Math.min(100, pct));
+        barWrap.hidden = false;
+        barA.style.width = `${(100 - clamped).toFixed(2)}%`;
+        barB.style.width = `${clamped.toFixed(2)}%`;
+        legend.innerHTML = [
+          `<span><i class="dot seg-emerald"></i>${CL.formatPercent(pct, 1)}</span>`,
+          `<span><i class="dot seg-navy"></i>${I18N.percentage.outRemainder} <strong class="num">${CL.formatPercent(Math.max(0, 100 - clamped), 1)}</strong></span>`,
+        ].join('');
+
+        lastSummary = `${CL.formatPercent(pct, 1)} × ${CL.formatMoney(base, cur)} = ${CL.formatMoney(part, cur)}`;
+      } else {
+        const oldVal = CL.parseNum(elFrom.value, 0);
+        const newVal = CL.parseNum(elTo.value, 0);
+        const diff = newVal - oldVal;
+        const pctChange = oldVal !== 0 ? (diff / Math.abs(oldVal)) * 100 : 0;
+        const mult = oldVal !== 0 ? newVal / oldVal : 0;
+
+        const sign = pctChange > 0 ? '+' : '';
+        heroBox.classList.toggle('is-loss', pctChange < 0);
+        outPrimaryLabel.textContent = I18N.percentage.outChangePct;
+        outPrimary.textContent = `${sign}${CL.formatPercent(pctChange, 2)}`;
+        k1Label.textContent = I18N.percentage.outChangeDiff;
+        k1Val.textContent = `${diff > 0 ? '+' : ''}${CL.formatMoney(diff, cur)}`;
+        k2Label.textContent = I18N.percentage.outMultiplier;
+        k2Val.textContent = `${mult.toFixed(3)}×`;
+
+        barWrap.hidden = true;
+        lastSummary = `${I18N.percentage.outChangePct}: ${sign}${CL.formatPercent(pctChange, 2)} (${diff > 0 ? '+' : ''}${CL.formatMoney(diff, cur)})`;
+      }
+
+      if (syncUrl) CL.syncUrlState(getState());
+    }
+
+    const params = CL.readParams();
+    if (params.has('cur')) currency.set(params.get('cur').toUpperCase(), true);
+    if (params.has('p')) elOrigPrice.value = params.get('p');
+    if (params.has('d1')) elDisc.value = params.get('d1');
+    if (params.has('d2')) elExtraDisc.value = params.get('d2');
+    if (params.has('r')) elPartRate.value = params.get('r');
+    if (params.has('base')) elBaseNum.value = params.get('base');
+    if (params.has('from')) elFrom.value = params.get('from');
+    if (params.has('to')) elTo.value = params.get('to');
+
+    setMode(params.get('mode') || 'discount', false);
+
+    shell.querySelectorAll('[data-pct-mode]').forEach((btn) => {
+      btn.addEventListener('click', () => setMode(btn.getAttribute('data-pct-mode'), true));
+    });
+    [elOrigPrice, elDisc, elExtraDisc, elPartRate, elBaseNum, elFrom, elTo].forEach((el) => {
+      el.addEventListener('input', () => calculate(true));
+    });
+    shell.querySelectorAll('[data-pct-disc]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        elDisc.value = btn.getAttribute('data-pct-disc');
+        calculate(true);
+      });
+    });
+    shell.querySelectorAll('[data-pct-extra]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        elExtraDisc.value = btn.getAttribute('data-pct-extra');
+        calculate(true);
+      });
+    });
+    document.querySelectorAll('[data-apply-disc]').forEach((row) => {
+      const activate = () => {
+        elDisc.value = row.getAttribute('data-apply-disc');
+        elExtraDisc.value = '0';
+        setMode('discount', true);
+        shell.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      };
+      row.addEventListener('click', activate);
+      row.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          activate();
+        }
+      });
+    });
+
+    document.getElementById('pct-copy-result').addEventListener('click', () => {
+      CL.copyText(lastSummary, I18N.copiedResult);
+    });
+    document.getElementById('pct-copy-link').addEventListener('click', () => {
+      CL.copyText(CL.buildShareUrl(getState()), I18N.copiedLink);
+    });
+    document.getElementById('pct-reset').addEventListener('click', () => {
+      currency.set(defaultCurrency, true);
+      elOrigPrice.value = '250';
+      elDisc.value = '25';
+      elExtraDisc.value = '0';
+      elPartRate.value = '20';
+      elBaseNum.value = '1500';
+      elFrom.value = '2500';
+      elTo.value = '2850';
+      setMode('discount', true);
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     const shell = document.querySelector('[data-calc]');
     if (!shell) return;
@@ -1790,5 +2579,8 @@
     else if (type === 'margin') initMargin(shell);
     else if (type === 'freelance') initFreelance(shell);
     else if (type === 'compound') initCompound(shell);
+    else if (type === 'loan') initLoan(shell);
+    else if (type === 'salary') initSalary(shell);
+    else if (type === 'percentage') initPercentage(shell);
   });
 })();
