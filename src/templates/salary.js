@@ -2,6 +2,11 @@ import { SITE_CONFIG } from '../config.js';
 import { getRoutePath, getAbsoluteUrl } from '../data/routes.js';
 import { getI18n, escapeHtml } from '../data/i18n.js';
 import {
+  SALARY_PRESETS,
+  formatMoneyStatic,
+  formatMoneyRoundedStatic,
+} from '../data/personal-presets.js';
+import {
   renderLayout,
   renderAdSlot,
   renderCurrencyControl,
@@ -14,14 +19,14 @@ import {
   buildFaqJsonLd,
 } from './layout.js';
 
-export function renderSalaryPage(lang) {
+export function renderSalaryPage(lang, preset = null) {
   const t = getI18n(lang);
-  const pageKey = 'salary';
-  const defaultCurrency = SITE_CONFIG.defaultCurrencyByLang[lang];
+  const pageKey = preset ? `salary:${preset.key}` : 'salary';
 
   const defaultsByLang = {
     en: {
       amount: 4500,
+      period: 'monthly',
       tax: 25,
       hours: 40,
       raise: 10,
@@ -35,6 +40,7 @@ export function renderSalaryPage(lang) {
     },
     de: {
       amount: 3000,
+      period: 'monthly',
       tax: 38,
       hours: 40,
       raise: 8,
@@ -48,6 +54,7 @@ export function renderSalaryPage(lang) {
     },
     pl: {
       amount: 6500,
+      period: 'monthly',
       tax: 29,
       hours: 40,
       raise: 10,
@@ -60,16 +67,127 @@ export function renderSalaryPage(lang) {
       ],
     },
   };
-  const def = defaultsByLang[lang] || defaultsByLang.en;
+  const baseDef = defaultsByLang[lang] || defaultsByLang.en;
+  const p = preset ? preset[lang] : null;
+  const defaultCurrency = p ? p.currency : SITE_CONFIG.defaultCurrencyByLang[lang];
+  const def = p
+    ? {
+        ...baseDef,
+        amount: p.amount,
+        period: p.period,
+        tax: p.taxPct,
+      }
+    : baseDef;
 
-  const breadcrumbs = [
-    { label: t.common.home, href: getRoutePath('home', lang), url: getAbsoluteUrl('home', lang) },
-    { label: t.nav.salary, href: getRoutePath(pageKey, lang), url: getAbsoluteUrl(pageKey, lang) },
-  ];
+  // SSR summary metrics for preset pages (40 h/wk = 2080 h/yr)
+  const annualNetSsr = def.period === 'yearly' ? def.amount : def.amount * 12;
+  const monthlyNetSsr = annualNetSsr / 12;
+  const hourlyNetSsr = annualNetSsr / (def.hours * 52);
+  const dailyNetSsr = hourlyNetSsr * 8;
+  const needsMoSsr = monthlyNetSsr * 0.5;
+  const wantsMoSsr = monthlyNetSsr * 0.3;
+  const savingsMoSsr = monthlyNetSsr * 0.2;
+  const emergencySsr = needsMoSsr * 6;
+
+  const fmtMoney = (v) => formatMoneyStatic(v, defaultCurrency, t.locale);
+  const fmtRound = (v) => formatMoneyRoundedStatic(v, defaultCurrency, t.locale);
+
+  let title = t.salary.title;
+  let description = t.salary.description;
+  let h1 = t.salary.h1;
+  let subtitle = t.salary.subtitle;
+  let faqs = t.salary.faqs;
+
+  if (p) {
+    const hrStr = fmtMoney(hourlyNetSsr);
+    const moStr = fmtRound(monthlyNetSsr);
+    const yrStr = fmtRound(annualNetSsr);
+    const savStr = fmtRound(savingsMoSsr);
+
+    if (lang === 'pl') {
+      title = `${p.label} — Stawka Godzinowa i Budżet 50/30/20 | CalcLedger`;
+      description = `Zarobki ${p.label} miesięcznie to ${hrStr}/godz. (${yrStr}/rok). Zobacz gotowy podział budżetu 50/30/20 (odkładaj ${savStr}/mies.), podwyżkę i poduszkę 6 mies.`;
+      h1 = `${p.label} — Ile to za godzinę i Plan Budżetu 50/30/20`;
+      subtitle = `Przy wypłacie ${p.label} (40 h/tydz.) Twoja realna stawka wynosi ${hrStr} za godzinę (${fmtMoney(dailyNetSsr)} dziennie). W regule 50/30/20 odkładasz ${savStr} miesięcznie.`;
+      faqs = [
+        {
+          q: `Ile to za godzinę przy pensji ${p.label} na pełen etat?`,
+          a: `Przy 40 godzinach pracy tygodniowo (2 080 godz. rocznie) pensja ${p.label} miesięcznie daje ${yrStr} rocznie, czyli dokładnie ${hrStr} na rękę za każdą godzinę (${fmtMoney(dailyNetSsr)} za 8-godzinny dzień).`,
+        },
+        {
+          q: `Jak podzielić ${p.label} według zasady 50/30/20?`,
+          a: `Przeznacz ${fmtRound(needsMoSsr)} na stałe potrzeby i rachunki (50%), ${fmtRound(wantsMoSsr)} na przyjemności i styl życia (30%) oraz ${savStr} na oszczędności i inwestycje (20%). Poduszka 6-miesięczna to ${fmtRound(emergencySsr)}.`,
+        },
+        ...t.salary.faqs.slice(1),
+      ];
+    } else if (lang === 'de') {
+      title = `${p.label} Gehalt — Stundenlohn & 50/30/20 Budget | CalcLedger`;
+      description = `${p.label} im Monat entspricht ${hrStr}/Std. (${yrStr}/Jahr). Komplettes 50/30/20-Budget (${savStr}/Mon. sparen), Gehaltserhöhung & Notgroschen-Plan.`;
+      h1 = `${p.label} Gehalt — Stundenlohn & 50/30/20 Budgetplan`;
+      subtitle = `Bei ${p.label} monatlich (40 Std./Woche) liegt Ihr echter Stundenlohn bei ${hrStr} (${fmtMoney(dailyNetSsr)} pro Tag). Mit 50/30/20 sparen Sie ${savStr} jeden Monat.`;
+      faqs = [
+        {
+          q: `Wie hoch ist der Stundenlohn bei ${p.label} im Monat?`,
+          a: `Bei einer 40-Stunden-Woche (2.080 Stunden im Jahr) ergibt ${p.label} monatlich ein Jahresnetto von ${yrStr} — das entspricht ${hrStr} pro Stunde bzw. ${fmtMoney(dailyNetSsr)} pro Arbeitstag.`,
+        },
+        {
+          q: `Wie teile ich ${p.label} nach der 50/30/20-Regel auf?`,
+          a: `50 % (${fmtRound(needsMoSsr)}) für Fixkosten, 30 % (${fmtRound(wantsMoSsr)}) für Freizeit & Wünsche und 20 % (${savStr}) für Sparen & ETFs. Ihr 6-Monats-Notgroschen beträgt ${fmtRound(emergencySsr)}.`,
+        },
+        ...t.salary.faqs.slice(1),
+      ];
+    } else {
+      title = `${p.label} Is How Much an Hour? + 50/30/20 Budget | CalcLedger`;
+      description = `${p.label} equals ${hrStr}/hour (${moStr}/month). See your daily rate, complete 50/30/20 budget (${savStr}/mo savings), raise impact & 6-month emergency fund.`;
+      h1 = `${p.label} Salary — Hourly Rate & 50/30/20 Budget`;
+      subtitle = `At 40 hours per week, ${p.label} works out to ${hrStr} per hour (${fmtMoney(dailyNetSsr)}/day, ${moStr}/month). With 50/30/20 budgeting you save ${savStr} every month.`;
+      faqs = [
+        {
+          q: `How much is ${p.label} per hour and per month?`,
+          a: `Based on a standard 40-hour workweek (2,080 hours/year), ${p.label} equals ${hrStr} per hour, ${fmtMoney(dailyNetSsr)} per 8-hour day, and ${moStr} per month.`,
+        },
+        {
+          q: `What is the 50/30/20 budget on ${p.label}?`,
+          a: `Allocate ${fmtRound(needsMoSsr)}/month to essentials (50%), ${fmtRound(wantsMoSsr)}/month to wants (30%), and ${savStr}/month to savings & investing (20%). A 6-month emergency fund is ${fmtRound(emergencySsr)}.`,
+        },
+        ...t.salary.faqs.slice(1),
+      ];
+    }
+  }
+
+  const breadcrumbs = preset
+    ? [
+        { label: t.common.home, href: getRoutePath('home', lang), url: getAbsoluteUrl('home', lang) },
+        { label: t.nav.salary, href: getRoutePath('salary', lang), url: getAbsoluteUrl('salary', lang) },
+        { label: p.short, href: getRoutePath(pageKey, lang), url: getAbsoluteUrl(pageKey, lang) },
+      ]
+    : [
+        { label: t.common.home, href: getRoutePath('home', lang), url: getAbsoluteUrl('home', lang) },
+        { label: t.nav.salary, href: getRoutePath(pageKey, lang), url: getAbsoluteUrl(pageKey, lang) },
+      ];
 
   const taxPillsHtml = def.taxPresets
-    .map((p) => `<button type="button" class="pill-btn" data-sal-tax="${p.pct}">${escapeHtml(p.label)}</button>`)
+    .map((tp) => `<button type="button" class="pill-btn" data-sal-tax="${tp.pct}">${escapeHtml(tp.label)}</button>`)
     .join('');
+
+  const presetsHeading =
+    lang === 'pl'
+      ? 'Gotowe przeliczniki dla popularnych zarobków w Polsce'
+      : lang === 'de'
+        ? 'Gehalts- & Budgetrechner für beliebte Einkommen'
+        : 'Popular Salary to Hourly & 50/30/20 Budget Guides';
+
+  const presetChipsHtml = SALARY_PRESETS.map((item) => {
+    const it = item[lang];
+    const isCurrent = preset && preset.key === item.key;
+    const yr = it.period === 'yearly' ? it.amount : it.amount * 12;
+    const hr = yr / (40 * 52);
+    return `<a class="chip-card${isCurrent ? ' is-current' : ''}" href="${escapeHtml(getRoutePath(`salary:${item.key}`, lang))}">
+      <span class="chip-card__code">50 / 30 / 20</span>
+      <span class="chip-card__name">${escapeHtml(it.label)}</span>
+      <span class="chip-card__meta">${escapeHtml(formatMoneyStatic(hr, it.currency, t.locale))}/h</span>
+    </a>`;
+  }).join('');
 
   const bodyHtml = `
     <div class="container">
@@ -79,8 +197,8 @@ export function renderSalaryPage(lang) {
         <div class="page-head__meta">
           <span class="status-tag">${escapeHtml(t.common.localBadge)}</span>
         </div>
-        <h1>${escapeHtml(t.salary.h1)}</h1>
-        <p class="page-head__sub">${escapeHtml(t.salary.subtitle)}</p>
+        <h1>${escapeHtml(h1)}</h1>
+        <p class="page-head__sub">${escapeHtml(subtitle)}</p>
       </header>
 
       ${renderAdSlot('topBanner', t)}
@@ -105,9 +223,9 @@ export function renderSalaryPage(lang) {
             <div class="field">
               <label class="field__label" for="sal-period">${escapeHtml(t.salary.periodLabel)}</label>
               <select class="input" id="sal-period">
-                <option value="monthly" selected>${escapeHtml(t.salary.periodMonthly)}</option>
-                <option value="yearly">${escapeHtml(t.salary.periodYearly)}</option>
-                <option value="hourly">${escapeHtml(t.salary.periodHourly)}</option>
+                <option value="monthly"${def.period === 'monthly' ? ' selected' : ''}>${escapeHtml(t.salary.periodMonthly)}</option>
+                <option value="yearly"${def.period === 'yearly' ? ' selected' : ''}>${escapeHtml(t.salary.periodYearly)}</option>
+                <option value="hourly"${def.period === 'hourly' ? ' selected' : ''}>${escapeHtml(t.salary.periodHourly)}</option>
               </select>
             </div>
           </div>
@@ -151,22 +269,22 @@ export function renderSalaryPage(lang) {
           <div class="result-hero-pair">
             <div class="result-hero">
               <span class="result-hero__label">${escapeHtml(t.salary.outMonthlyNet)}</span>
-              <strong class="result-hero__value num" id="sal-out-monthly">—</strong>
+              <strong class="result-hero__value num" id="sal-out-monthly">${escapeHtml(fmtMoney(monthlyNetSsr))}</strong>
             </div>
             <div class="result-hero result-hero--alt">
               <span class="result-hero__label">${escapeHtml(t.salary.outHourlyNet)}</span>
-              <strong class="result-hero__value num" id="sal-out-hourly">—</strong>
+              <strong class="result-hero__value num" id="sal-out-hourly">${escapeHtml(fmtMoney(hourlyNetSsr))}</strong>
             </div>
           </div>
 
           <div class="kpi-grid">
             <div class="kpi">
               <span class="kpi__label">${escapeHtml(t.salary.outDailyNet)}</span>
-              <strong class="kpi__value num" id="sal-out-daily">—</strong>
+              <strong class="kpi__value num" id="sal-out-daily">${escapeHtml(fmtMoney(dailyNetSsr))}</strong>
             </div>
             <div class="kpi">
               <span class="kpi__label">${escapeHtml(t.salary.outYearlyNet)}</span>
-              <strong class="kpi__value num" id="sal-out-yearly">—</strong>
+              <strong class="kpi__value num" id="sal-out-yearly">${escapeHtml(fmtMoney(annualNetSsr))}</strong>
             </div>
             <div class="kpi">
               <span class="kpi__label">${escapeHtml(t.salary.outRaiseMonthly)}</span>
@@ -182,7 +300,7 @@ export function renderSalaryPage(lang) {
             </div>
             <div class="kpi">
               <span class="kpi__label">${escapeHtml(t.salary.outEmergency)}</span>
-              <strong class="kpi__value num" id="sal-out-emergency">—</strong>
+              <strong class="kpi__value num" id="sal-out-emergency">${escapeHtml(fmtMoney(emergencySsr))}</strong>
             </div>
           </div>
 
@@ -223,24 +341,29 @@ export function renderSalaryPage(lang) {
               <tr>
                 <td><strong>${escapeHtml(t.salary.rowNeeds)}</strong></td>
                 <td class="num" id="sal-t-needs-pct">50%</td>
-                <td class="num"><strong id="sal-t-needs-mo">—</strong></td>
-                <td class="num" id="sal-t-needs-yr">—</td>
+                <td class="num"><strong id="sal-t-needs-mo">${escapeHtml(fmtMoney(needsMoSsr))}</strong></td>
+                <td class="num" id="sal-t-needs-yr">${escapeHtml(fmtMoney(needsMoSsr * 12))}</td>
               </tr>
               <tr>
                 <td><strong>${escapeHtml(t.salary.rowWants)}</strong></td>
                 <td class="num" id="sal-t-wants-pct">30%</td>
-                <td class="num"><strong id="sal-t-wants-mo">—</strong></td>
-                <td class="num" id="sal-t-wants-yr">—</td>
+                <td class="num"><strong id="sal-t-wants-mo">${escapeHtml(fmtMoney(wantsMoSsr))}</strong></td>
+                <td class="num" id="sal-t-wants-yr">${escapeHtml(fmtMoney(wantsMoSsr * 12))}</td>
               </tr>
               <tr>
                 <td><strong>${escapeHtml(t.salary.rowSavings)}</strong></td>
                 <td class="num" id="sal-t-savings-pct">20%</td>
-                <td class="num"><strong id="sal-t-savings-mo">—</strong></td>
-                <td class="num" id="sal-t-savings-yr">—</td>
+                <td class="num"><strong id="sal-t-savings-mo">${escapeHtml(fmtMoney(savingsMoSsr))}</strong></td>
+                <td class="num" id="sal-t-savings-yr">${escapeHtml(fmtMoney(savingsMoSsr * 12))}</td>
               </tr>
             </tbody>
           </table>
         </div>
+      </section>
+
+      <section class="content-section" aria-labelledby="sal-presets-title">
+        <h2 id="sal-presets-title" class="section-heading">${escapeHtml(presetsHeading)}</h2>
+        <div class="chip-grid">${presetChipsHtml}</div>
       </section>
 
       ${renderAdSlot('midContent', t)}
@@ -254,7 +377,7 @@ export function renderSalaryPage(lang) {
         </div>
       </section>
 
-      ${renderFaqSection(t.salary.faqs, t.common.faqHeading)}
+      ${renderFaqSection(faqs, t.common.faqHeading)}
       ${renderRelatedCalculators('salary', lang, t)}
       ${renderAdSlot('bottomBanner', t)}
     </div>
@@ -264,14 +387,14 @@ export function renderSalaryPage(lang) {
     lang,
     pageKey,
     activeNav: 'salary',
-    title: t.salary.title,
-    description: t.salary.description,
+    title,
+    description,
     bodyHtml,
     includeCalculatorScript: true,
     jsonLd: [
       buildSoftwareAppJsonLd({
-        name: t.salary.h1,
-        description: t.salary.description,
+        name: h1,
+        description,
         url: getAbsoluteUrl(pageKey, lang),
         lang,
         featureList: [
@@ -283,7 +406,7 @@ export function renderSalaryPage(lang) {
         ],
       }),
       buildBreadcrumbJsonLd(breadcrumbs),
-      buildFaqJsonLd(t.salary.faqs),
+      buildFaqJsonLd(faqs),
     ],
   });
 }

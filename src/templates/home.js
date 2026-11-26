@@ -4,6 +4,7 @@ import { VAT_COUNTRIES } from '../data/vat-countries.js';
 import { MARKETPLACES } from '../data/marketplaces.js';
 import { PAYMENT_PROVIDERS } from '../data/payment-providers.js';
 import { COMPARISONS } from '../data/comparisons.js';
+import { SALARY_PRESETS, LOAN_PRESETS } from '../data/personal-presets.js';
 import { getMarketPriority, sortByKeyOrder } from '../data/market-priority.js';
 import {
   renderLayout,
@@ -20,6 +21,7 @@ export function renderHomePage(lang) {
   const personalToolsAll = [
     { key: 'salary', title: t.salary.cardTitle, desc: t.salary.cardDesc },
     { key: 'loan', title: t.loan.cardTitle, desc: t.loan.cardDesc },
+    { key: 'fuel', title: t.fuel.cardTitle, desc: t.fuel.cardDesc },
     { key: 'compound', title: t.compound.cardTitle, desc: t.compound.cardDesc },
     { key: 'percentage', title: t.percentage.cardTitle, desc: t.percentage.cardDesc },
   ];
@@ -92,6 +94,17 @@ export function renderHomePage(lang) {
       `<a class="quick-link" href="${escapeHtml(getRoutePath(`compare:${c.key}`, lang))}">${escapeHtml(c.sideA.name)} vs ${escapeHtml(c.sideB.name)} &rarr;</a>`
   ).join('');
 
+  const personalPresetStripHtml = [
+    ...SALARY_PRESETS.slice(0, 3).map(
+      (s) =>
+        `<a class="quick-link" href="${escapeHtml(getRoutePath(`salary:${s.key}`, lang))}">${escapeHtml(s[lang].label)} &rarr;</a>`
+    ),
+    ...LOAN_PRESETS.slice(1, 4).map(
+      (l) =>
+        `<a class="quick-link" href="${escapeHtml(getRoutePath(`loan:${l.key}`, lang))}">${escapeHtml(t.nav.loan)}: ${escapeHtml(l[lang].label)} &rarr;</a>`
+    ),
+  ].join('');
+
   const whyHtml = t.home.whyItems
     .map(
       (item, idx) => `<article class="feature-item">
@@ -152,6 +165,7 @@ export function renderHomePage(lang) {
             </div>
           </article>
         </div>
+        <nav class="quick-strip" aria-label="${escapeHtml(t.home.personalHub.title)}">${personalPresetStripHtml}</nav>
       </section>
 
       <section class="content-section" aria-labelledby="vat-grid-title">

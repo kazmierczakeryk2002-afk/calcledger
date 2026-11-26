@@ -1,4 +1,5 @@
 import { SITE_CONFIG } from '../config.js';
+import { SALARY_PRESETS, LOAN_PRESETS } from './personal-presets.js';
 
 /**
  * Canonical route map across EN, DE, and PL.
@@ -130,6 +131,11 @@ export const ROUTES = {
     de: '/de/prozent-rabatt-rechner/',
     pl: '/pl/kalkulator-procentowy-i-rabatow/',
   },
+  fuel: {
+    en: '/fuel-cost-calculator/',
+    de: '/de/spritkosten-rechner/',
+    pl: '/pl/kalkulator-kosztow-paliwa/',
+  },
   about: {
     en: '/about/',
     de: '/de/ueber-uns/',
@@ -181,6 +187,22 @@ for (const key of COMPARISON_KEYS) {
     en: `/compare/${key}/`,
     de: `/de/vergleich/${key}/`,
     pl: `/pl/porownanie/${key}/`,
+  };
+}
+
+for (const preset of SALARY_PRESETS) {
+  ROUTES[`salary:${preset.key}`] = {
+    en: `/salary-budget-calculator/${preset.slugs.en}/`,
+    de: `/de/gehalt-budget-rechner/${preset.slugs.de}/`,
+    pl: `/pl/kalkulator-pensji-i-budzetu/${preset.slugs.pl}/`,
+  };
+}
+
+for (const preset of LOAN_PRESETS) {
+  ROUTES[`loan:${preset.key}`] = {
+    en: `/loan-mortgage-calculator/${preset.slugs.en}/`,
+    de: `/de/kredit-tilgungs-rechner/${preset.slugs.de}/`,
+    pl: `/pl/kalkulator-kredytu-i-nadplaty/${preset.slugs.pl}/`,
   };
 }
 

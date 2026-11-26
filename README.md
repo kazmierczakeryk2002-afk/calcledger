@@ -2,7 +2,7 @@
 
 **Live site:** [https://calcledger.org](https://calcledger.org) · **Deutsch:** [calcledger.org/de/](https://calcledger.org/de/) · **Polski:** [calcledger.org/pl/](https://calcledger.org/pl/) · **LLMs Index:** [calcledger.org/llms.txt](https://calcledger.org/llms.txt)
 
-Zero-dependency, privacy-first multilingual (**EN / DE / PL**) financial calculator suite for **everyday personal finance** and **business / e-commerce**, built with pure HTML, Vanilla CSS, Vanilla JS, and a custom Node.js static site generator (**126 localized static HTML pages**, deployed on Cloudflare Workers Static Assets).
+Zero-dependency, privacy-first multilingual (**EN / DE / PL**) financial calculator suite for **everyday personal finance** and **business / e-commerce**, built with pure HTML, Vanilla CSS, Vanilla JS, and a custom Node.js static site generator (**165 localized static HTML pages**, deployed on Cloudflare Workers Static Assets).
 
 Every calculation runs **100% locally in the browser** — no accounts, no server-side input tracking, instant live updates, 5 currencies (`EUR`, `USD`, `GBP`, `CHF`, `PLN`), tap-to-copy KPIs, per-country popularity ordering, and shareable URL query state.
 
@@ -14,8 +14,9 @@ Every calculation runs **100% locally in the browser** — no accounts, no serve
 
 | Tool | What It Calculates | Live Links |
 |---|---|---|
-| **Salary, Pay Raise & 50/30/20 Budget** | Net or Gross-to-Net salary converter (monthly, yearly, daily, hourly), pay raise simulator, 50/30/20 budget split, 6-month emergency fund & purchase cost in work hours | [EN](https://calcledger.org/salary-budget-calculator/) · [DE](https://calcledger.org/de/gehalt-budget-rechner/) · [PL](https://calcledger.org/pl/kalkulator-pensji-i-budzetu/) |
-| **Loan, Mortgage & Early Payoff** | Monthly payment, total interest, monthly & lump-sum overpayment savings (years & money saved), remaining-balance SVG chart & CSV amortization schedule | [EN](https://calcledger.org/loan-mortgage-calculator/) · [DE](https://calcledger.org/de/kredit-tilgungs-rechner/) · [PL](https://calcledger.org/pl/kalkulator-kredytu-i-nadplaty/) |
+| **Salary, Pay Raise & 50/30/20 Budget** | Net or Gross-to-Net salary converter (monthly, yearly, daily, hourly), pay raise simulator, 50/30/20 budget split, 6-month emergency fund, purchase cost in work hours & **18 localized income-tier guides** | [EN](https://calcledger.org/salary-budget-calculator/) · [DE](https://calcledger.org/de/gehalt-budget-rechner/) · [PL](https://calcledger.org/pl/kalkulator-pensji-i-budzetu/) |
+| **Loan, Mortgage & Early Payoff** | Monthly payment, total interest, monthly & lump-sum overpayment savings (years & money saved), remaining-balance SVG chart, CSV schedule & **18 localized loan-amount guides** | [EN](https://calcledger.org/loan-mortgage-calculator/) · [DE](https://calcledger.org/de/kredit-tilgungs-rechner/) · [PL](https://calcledger.org/pl/kalkulator-kredytu-i-nadplaty/) |
+| **Fuel Cost, Road Trip & Commute** | Trip fuel cost, per-passenger split, monthly & annual commute cost, CO₂ estimate & **live Petrol vs Diesel vs LPG vs Electric (EV) comparison** | [EN](https://calcledger.org/fuel-cost-calculator/) · [DE](https://calcledger.org/de/spritkosten-rechner/) · [PL](https://calcledger.org/pl/kalkulator-kosztow-paliwa/) |
 | **Savings, Compound Interest & ROI** | Portfolio growth & **reverse savings-goal mode**, interactive sliders, capital gains tax (`0%`, `19%` PL Belka, `26.375%` DE Abgeltungssteuer), inflation-adjusted real purchasing power, SVG chart, year-by-year table & UTF-8 CSV export | [EN](https://calcledger.org/compound-interest-calculator/) · [DE](https://calcledger.org/de/zinseszins-rechner/) · [PL](https://calcledger.org/pl/kalkulator-procentu-skladanego/) |
 | **Percentage, Discounts & Change** | Sale prices after −X% (with stacked extra promo codes), X% of a number, and percentage increase/decrease + clickable discount table | [EN](https://calcledger.org/percentage-discount-calculator/) · [DE](https://calcledger.org/de/prozent-rabatt-rechner/) · [PL](https://calcledger.org/pl/kalkulator-procentowy-i-rabatow/) |
 
@@ -42,10 +43,10 @@ Every calculation runs **100% locally in the browser** — no accounts, no serve
 ## Architecture & Highlights
 
 - **Zero npm dependencies** — built using only Node.js built-in modules (`node:fs`, `node:path`, `node:crypto`, `node:http`, `node:url`).
-- **126 localized HTML pages** with complete bi-directional `hreflang` matrices (`en`, `de`, `pl`, `x-default`), unique titles/descriptions, self-referencing canonicals, and **351 validated JSON-LD blocks** (`WebSite`, `SoftwareApplication`, `FAQPage`, `BreadcrumbList`).
+- **165 localized HTML pages** with complete bi-directional `hreflang` matrices (`en`, `de`, `pl`, `x-default`), unique titles/descriptions, self-referencing canonicals, and **468 validated JSON-LD blocks** (`WebSite`, `SoftwareApplication`, `FAQPage`, `BreadcrumbList`).
 - **Per-Country Popularity Ordering** — switching between EN, DE, and PL automatically reorders both the Personal Finance and Business hubs, quick nav, VAT countries, and marketplaces by regional demand.
-- **GEO / AI-Search Ready** — machine-readable [`llms.txt`](https://calcledger.org/llms.txt) and [`llms-full.txt`](https://calcledger.org/llms-full.txt) with explicit formulas & European VAT tables.
-- **UX Craft** — Dual-Hub homepage, sticky desktop results, floating mobile live-result dock, instant Quick Finder (`Ctrl+K` / `⌘K`), tap-to-copy KPI cards, discreet `?` field hints, and automatic SHA-256 asset cache-busting.
+- **GEO / AI-Search Ready & Auto IndexNow** — machine-readable [`llms.txt`](https://calcledger.org/llms.txt) and [`llms-full.txt`](https://calcledger.org/llms-full.txt) + automated IndexNow submission on every deploy via GitHub Actions.
+- **UX Craft** — Dual-Hub homepage, sticky desktop results, floating mobile live-result dock, instant Quick Finder (`Ctrl+K` / `⌘K`), tap-to-copy KPI cards, discreet `?` field hints, localized Open Graph cards, and automatic SHA-256 asset cache-busting.
 - **GDPR / RODO / DSGVO Compliant** — Google Consent Mode v2 banner, 100% client-side computation, zero server storage of financial inputs.
 
 ---
@@ -53,10 +54,11 @@ Every calculation runs **100% locally in the browser** — no accounts, no serve
 ## Local Development
 
 ```bash
-npm run build      # Generate all 126 localized HTML pages + SEO/GEO files into dist/
-npm run check-seo  # Audit titles, descriptions, hreflang symmetry, JSON-LD, and internal links
-npm run verify     # Build + full technical SEO & GEO audit
-npm run serve      # Local static preview on http://127.0.0.1:4173
+npm run build         # Generate all 165 localized HTML pages + SEO/GEO files into dist/
+npm run check-seo     # Audit titles, descriptions, hreflang symmetry, JSON-LD, and internal links
+npm run verify        # Build + full technical SEO & GEO audit
+npm run ping-indexnow # Submit canonical URLs to IndexNow (Bing, ChatGPT Search, Yandex)
+npm run serve         # Local static preview on http://127.0.0.1:4173
 ```
 
 ## Deployment (Cloudflare Workers Static Assets)

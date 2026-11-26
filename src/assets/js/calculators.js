@@ -2111,6 +2111,20 @@
         calculate(true);
       });
     });
+    document.querySelectorAll('tr[data-loan-extra]').forEach((row) => {
+      const activate = () => {
+        elExtra.value = row.getAttribute('data-loan-extra');
+        calculate(true);
+        shell.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      };
+      row.addEventListener('click', activate);
+      row.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          activate();
+        }
+      });
+    });
 
     document.getElementById('loan-copy-result').addEventListener('click', () => {
       CL.copyText(lastSummary, I18N.copiedResult);
@@ -2567,6 +2581,252 @@
     });
   }
 
+  /* ------------------------------------------------------------------------
+     12. Fuel Cost, Road Trip & Commute Calculator (Petrol / Diesel / LPG / EV)
+     ------------------------------------------------------------------------ */
+  function initFuel(shell) {
+    const CL = window.CalcLedger;
+    const I18N = CL.I18N;
+    const defaultCurrency = shell.getAttribute('data-default-currency') || 'EUR';
+    let presets = {};
+    try {
+      presets = JSON.parse(shell.getAttribute('data-fuel-presets') || '{}');
+    } catch (_) {
+      presets = {};
+    }
+
+    const elDist = document.getElementById('fuel-dist');
+    const elDistLabel = document.getElementById('fuel-dist-label');
+    const elRoundtripWrap = document.getElementById('fuel-roundtrip-wrap');
+    const elRoundtrip = document.getElementById('fuel-roundtrip');
+    const elCons = document.getElementById('fuel-cons');
+    const elConsLabel = document.getElementById('fuel-cons-label');
+    const elPrice = document.getElementById('fuel-price');
+    const elPriceLabel = document.getElementById('fuel-price-label');
+    const elPassengersWrap = document.getElementById('fuel-passengers-wrap');
+    const elPassengers = document.getElementById('fuel-passengers');
+    const elDaysWrap = document.getElementById('fuel-days-wrap');
+    const elDays = document.getElementById('fuel-days');
+
+    const defaults = {
+      dist: elDist.value,
+      cons: elCons.value,
+      price: elPrice.value,
+      pax: elPassengers.value,
+      days: elDays.value,
+    };
+
+    const elPrimaryLabel = document.getElementById('fuel-primary-label');
+    const outPrimary = document.getElementById('fuel-out-primary');
+    const elSecondaryLabel = document.getElementById('fuel-secondary-label');
+    const outSecondary = document.getElementById('fuel-out-secondary');
+    const outPer100 = document.getElementById('fuel-out-per100');
+    const outLiters = document.getElementById('fuel-out-liters');
+    const outDist = document.getElementById('fuel-out-dist');
+    const outCo2 = document.getElementById('fuel-out-co2');
+    const compareBody = document.getElementById('fuel-compare-body');
+
+    let mode = 'trip'; // 'trip' | 'commute'
+    let fuelType = 'petrol'; // 'petrol' | 'diesel' | 'lpg' | 'ev'
+    let lastSummary = '';
+    const currency = bindCurrencySwitcher(shell, defaultCurrency, () => calculate(true));
+
+    function setLabelTextKeepingHint(labelEl, text) {
+      if (!labelEl) return;
+      const hintBtn = labelEl.querySelector('.hint-btn');
+      labelEl.textContent = text;
+      if (hintBtn) {
+        labelEl.appendChild(document.createTextNode(' '));
+        labelEl.appendChild(hintBtn);
+      }
+    }
+
+    function setMode(nextMode, sync) {
+      mode = nextMode === 'commute' ? 'commute' : 'trip';
+      shell.querySelectorAll('[data-fuel-mode]').forEach((btn) => {
+        const active = btn.getAttribute('data-fuel-mode') === mode;
+        btn.classList.toggle('is-active', active);
+        btn.setAttribute('aria-pressed', String(active));
+      });
+      if (elDistLabel) {
+        elDistLabel.textContent = mode === 'commute' ? I18N.fuel.distanceLabelCommute : I18N.fuel.distanceLabelTrip;
+      }
+      if (elRoundtripWrap) elRoundtripWrap.hidden = mode === 'commute';
+      if (elPassengersWrap) elPassengersWrap.hidden = mode === 'commute';
+      if (elDaysWrap) elDaysWrap.hidden = mode !== 'commute';
+      if (elPrimaryLabel) {
+        elPrimaryLabel.textContent = mode === 'commute' ? I18N.fuel.outMonthlyCommute : I18N.fuel.outTripCost;
+      }
+      if (elSecondaryLabel) {
+        elSecondaryLabel.textContent = mode === 'commute' ? I18N.fuel.outYearlyCommute : I18N.fuel.outPerPerson;
+      }
+      calculate(sync);
+    }
+
+    function setFuelType(nextType, applyDefaults, sync) {
+      fuelType = ['petrol', 'diesel', 'lpg', 'ev'].includes(nextType) ? nextType : 'petrol';
+      shell.querySelectorAll('[data-fuel-type]').forEach((btn) => {
+        btn.classList.toggle('is-active', btn.getAttribute('data-fuel-type') === fuelType);
+      });
+      const isEv = fuelType === 'ev';
+      setLabelTextKeepingHint(elConsLabel, isEv ? I18N.fuel.consumptionLabelEv : I18N.fuel.consumptionLabelFuel);
+      if (elPriceLabel) elPriceLabel.textContent = isEv ? I18N.fuel.priceLabelEv : I18N.fuel.priceLabelFuel;
+      if (applyDefaults && presets[fuelType]) {
+        elCons.value = presets[fuelType].cons;
+        elPrice.value = presets[fuelType].price;
+      }
+      calculate(sync);
+    }
+
+    function getState() {
+      return {
+        cur: currency.get(),
+        mode,
+        type: fuelType,
+        dist: elDist.value,
+        rt: elRoundtrip && elRoundtrip.checked ? '1' : '0',
+        cons: elCons.value,
+        price: elPrice.value,
+        pax: elPassengers.value,
+        days: elDays.value,
+      };
+    }
+
+    function calculate(syncUrl) {
+      const distOneWay = Math.max(0, CL.parseNum(elDist.value, 0));
+      const cons = Math.max(0, CL.parseNum(elCons.value, 0));
+      const price = Math.max(0, CL.parseNum(elPrice.value, 0));
+      const pax = Math.max(1, Math.min(9, Math.round(CL.parseNum(elPassengers.value, 1))));
+      const days = Math.max(1, Math.min(31, Math.round(CL.parseNum(elDays.value, 21))));
+      const roundTrip = elRoundtrip ? elRoundtrip.checked : false;
+
+      const totalDist = mode === 'commute' ? distOneWay * 2 * days : distOneWay * (roundTrip ? 2 : 1);
+      const costPer100 = cons * price;
+      const unitsNeeded = (totalDist / 100) * cons;
+      const totalCost = unitsNeeded * price;
+      const secondaryVal = mode === 'commute' ? totalCost * 12 : totalCost / pax;
+
+      const co2Factor = (presets[fuelType] && presets[fuelType].co2) || 2.31;
+      const co2Kg = unitsNeeded * co2Factor;
+      const unitLabel = fuelType === 'ev' ? 'kWh' : 'L';
+      const cur = currency.get();
+
+      outPrimary.textContent = CL.formatMoney(totalCost, cur);
+      outSecondary.textContent = CL.formatMoney(secondaryVal, cur);
+      outPer100.textContent = CL.formatMoney(costPer100, cur);
+      outLiters.textContent = `${CL.formatNumber(unitsNeeded, 1)} ${unitLabel}`;
+      outDist.textContent = `${CL.formatNumber(totalDist, 0)} km`;
+      outCo2.textContent = `${CL.formatNumber(co2Kg, 1)} kg`;
+
+      shell.querySelectorAll('[data-fuel-dist]').forEach((btn) => {
+        btn.classList.toggle('is-active', Math.abs(CL.parseNum(btn.getAttribute('data-fuel-dist'), -1) - distOneWay) < 0.1);
+      });
+      shell.querySelectorAll('[data-fuel-pax]').forEach((btn) => {
+        btn.classList.toggle('is-active', Math.round(CL.parseNum(btn.getAttribute('data-fuel-pax'), -1)) === pax);
+      });
+
+      if (compareBody) {
+        const rows = [
+          { key: 'petrol', name: I18N.fuel.typePetrol, unit: 'L/100km' },
+          { key: 'diesel', name: I18N.fuel.typeDiesel, unit: 'L/100km' },
+          { key: 'lpg', name: I18N.fuel.typeLpg, unit: 'L/100km' },
+          { key: 'ev', name: I18N.fuel.typeEv, unit: 'kWh/100km' },
+        ].map((item) => {
+          const pr = presets[item.key] || { cons: 7.5, price: 1.5 };
+          const c = item.key === fuelType ? cons : pr.cons;
+          const p = item.key === fuelType ? price : pr.price;
+          const distCost = (totalDist / 100) * c * p;
+          const yearly15k = (15000 / 100) * c * p;
+          return { ...item, c, distCost, yearly15k };
+        });
+
+        const minYearly = Math.min(...rows.map((r) => r.yearly15k));
+        compareBody.innerHTML = rows
+          .map((r) => {
+            const isBest = Math.abs(r.yearly15k - minYearly) < 0.01;
+            const isCur = r.key === fuelType;
+            return `<tr class="clickable-row${isCur ? ' is-selected' : ''}" data-pick-fuel="${r.key}" tabindex="0" role="button">
+              <td><strong>${r.name}</strong>${isBest ? `<span class="badge-best">Min</span>` : ''}</td>
+              <td class="num">${CL.formatNumber(r.c, 1)} ${r.unit}</td>
+              <td class="num"><strong>${CL.formatMoney(r.distCost, cur)}</strong></td>
+              <td class="num">${CL.formatMoney(r.yearly15k, cur)}</td>
+            </tr>`;
+          })
+          .join('');
+
+        compareBody.querySelectorAll('[data-pick-fuel]').forEach((row) => {
+          row.addEventListener('click', () => {
+            setFuelType(row.getAttribute('data-pick-fuel'), true, true);
+          });
+        });
+      }
+
+      lastSummary = [
+        `${mode === 'commute' ? I18N.fuel.outMonthlyCommute : I18N.fuel.outTripCost}: ${CL.formatMoney(totalCost, cur)}`,
+        `${mode === 'commute' ? I18N.fuel.outYearlyCommute : I18N.fuel.outPerPerson}: ${CL.formatMoney(secondaryVal, cur)}`,
+        `${I18N.fuel.outCostPer100}: ${CL.formatMoney(costPer100, cur)}`,
+      ].join(' | ');
+
+      if (syncUrl) CL.syncUrlState(getState());
+    }
+
+    const params = CL.readParams();
+    if (params.has('cur')) currency.set(params.get('cur').toUpperCase(), true);
+    if (params.has('dist')) elDist.value = params.get('dist');
+    if (params.has('rt') && elRoundtrip) elRoundtrip.checked = params.get('rt') === '1';
+    if (params.has('cons')) elCons.value = params.get('cons');
+    if (params.has('price')) elPrice.value = params.get('price');
+    if (params.has('pax')) elPassengers.value = params.get('pax');
+    if (params.has('days')) elDays.value = params.get('days');
+
+    const initType = params.get('type') || 'petrol';
+    const initMode = params.get('mode') === 'commute' ? 'commute' : 'trip';
+    setFuelType(initType, false, false);
+    setMode(initMode, false);
+
+    shell.querySelectorAll('[data-fuel-mode]').forEach((btn) => {
+      btn.addEventListener('click', () => setMode(btn.getAttribute('data-fuel-mode'), true));
+    });
+    shell.querySelectorAll('[data-fuel-type]').forEach((btn) => {
+      btn.addEventListener('click', () => setFuelType(btn.getAttribute('data-fuel-type'), true, true));
+    });
+    shell.querySelectorAll('[data-fuel-dist]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        elDist.value = btn.getAttribute('data-fuel-dist');
+        calculate(true);
+      });
+    });
+    shell.querySelectorAll('[data-fuel-pax]').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        elPassengers.value = btn.getAttribute('data-fuel-pax');
+        calculate(true);
+      });
+    });
+
+    [elDist, elCons, elPrice, elPassengers, elDays].forEach((el) => {
+      el.addEventListener('input', () => calculate(true));
+    });
+    if (elRoundtrip) elRoundtrip.addEventListener('change', () => calculate(true));
+
+    document.getElementById('fuel-copy-result').addEventListener('click', () => {
+      CL.copyText(lastSummary, I18N.copiedResult);
+    });
+    document.getElementById('fuel-copy-link').addEventListener('click', () => {
+      CL.copyText(CL.buildShareUrl(getState()), I18N.copiedLink);
+    });
+    document.getElementById('fuel-reset').addEventListener('click', () => {
+      currency.set(defaultCurrency, true);
+      elDist.value = defaults.dist;
+      elCons.value = defaults.cons;
+      elPrice.value = defaults.price;
+      elPassengers.value = defaults.pax;
+      elDays.value = defaults.days;
+      if (elRoundtrip) elRoundtrip.checked = false;
+      setFuelType('petrol', true, false);
+      setMode('trip', true);
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', () => {
     const shell = document.querySelector('[data-calc]');
     if (!shell) return;
@@ -2582,5 +2842,6 @@
     else if (type === 'loan') initLoan(shell);
     else if (type === 'salary') initSalary(shell);
     else if (type === 'percentage') initPercentage(shell);
+    else if (type === 'fuel') initFuel(shell);
   });
 })();

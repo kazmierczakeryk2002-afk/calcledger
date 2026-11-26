@@ -2,6 +2,12 @@ import { SITE_CONFIG } from '../config.js';
 import { getRoutePath, getAbsoluteUrl } from '../data/routes.js';
 import { getI18n, escapeHtml } from '../data/i18n.js';
 import {
+  LOAN_PRESETS,
+  formatMoneyStatic,
+  formatMoneyRoundedStatic,
+  computeLoanScenario,
+} from '../data/personal-presets.js';
+import {
   renderLayout,
   renderAdSlot,
   renderCurrencyControl,
@@ -14,22 +20,125 @@ import {
   buildFaqJsonLd,
 } from './layout.js';
 
-export function renderLoanPage(lang) {
+function formatMonthsLabel(months, t) {
+  const m = Math.max(0, Math.round(months));
+  if (m === 0) return t.loan.noSavings;
+  const yrs = Math.floor(m / 12);
+  const rem = m % 12;
+  if (yrs > 0 && rem > 0) return `${yrs} ${t.loan.unitYears} ${rem} ${t.loan.unitMonths}`;
+  if (yrs > 0) return `${yrs} ${t.loan.unitYears}`;
+  return `${rem} ${t.loan.unitMonths}`;
+}
+
+export function renderLoanPage(lang, preset = null) {
   const t = getI18n(lang);
-  const pageKey = 'loan';
-  const defaultCurrency = SITE_CONFIG.defaultCurrencyByLang[lang];
+  const pageKey = preset ? `loan:${preset.key}` : 'loan';
 
   const defaultsByLang = {
-    en: { amount: 300000, rate: 6.5, years: 30, extra: 250, lump: 0, amtPills: [50000, 150000, 300000, 500000], extraPills: [0, 100, 250, 500] },
-    de: { amount: 250000, rate: 3.8, years: 25, extra: 200, lump: 0, amtPills: [50000, 150000, 250000, 400000], extraPills: [0, 100, 200, 500] },
-    pl: { amount: 400000, rate: 7.5, years: 25, extra: 500, lump: 0, amtPills: [50000, 200000, 400000, 600000], extraPills: [0, 250, 500, 1000] },
+    en: { amount: 300000, rate: 6.5, years: 30, extra: 250, lump: 0, amtPills: [150000, 300000, 500000, 750000], extraPills: [0, 100, 250, 500] },
+    de: { amount: 250000, rate: 3.8, years: 25, extra: 200, lump: 0, amtPills: [150000, 250000, 400000, 500000], extraPills: [0, 100, 200, 500] },
+    pl: { amount: 400000, rate: 7.5, years: 25, extra: 500, lump: 0, amtPills: [200000, 400000, 600000, 800000], extraPills: [0, 250, 500, 1000] },
   };
-  const def = defaultsByLang[lang] || defaultsByLang.en;
+  const baseDef = defaultsByLang[lang] || defaultsByLang.en;
+  const p = preset ? preset[lang] : null;
+  const defaultCurrency = p ? p.currency : SITE_CONFIG.defaultCurrencyByLang[lang];
+  const def = p
+    ? {
+        amount: p.amount,
+        rate: p.rate,
+        years: p.years,
+        extra: p.extra,
+        lump: 0,
+        amtPills: baseDef.amtPills,
+        extraPills: p.extras,
+      }
+    : baseDef;
 
-  const breadcrumbs = [
-    { label: t.common.home, href: getRoutePath('home', lang), url: getAbsoluteUrl('home', lang) },
-    { label: t.nav.loan, href: getRoutePath(pageKey, lang), url: getAbsoluteUrl(pageKey, lang) },
-  ];
+  // Compute exact SSR overpayment scenarios for this preset (or default)
+  const scenarioExtras = p ? p.extras : def.extraPills;
+  const scenarios = scenarioExtras.map((ext) => ({
+    extra: ext,
+    ...computeLoanScenario(def.amount, def.rate, def.years, ext),
+  }));
+  const featured = scenarios[Math.min(2, scenarios.length - 1)];
+
+  const locale = t.locale;
+  const fmtMoney = (v) => formatMoneyStatic(v, defaultCurrency, locale);
+  const fmtRound = (v) => formatMoneyRoundedStatic(v, defaultCurrency, locale);
+
+  let title = t.loan.title;
+  let description = t.loan.description;
+  let h1 = t.loan.h1;
+  let subtitle = t.loan.subtitle;
+  let faqs = t.loan.faqs;
+
+  if (p) {
+    const basePayStr = fmtMoney(featured.baseMonthly);
+    const savedIntStr = fmtRound(featured.interestSaved);
+    const savedTimeStr = formatMonthsLabel(featured.monthsSaved, t);
+    const extraStr = fmtRound(featured.extra);
+
+    if (lang === 'pl') {
+      title = `Kredyt ${p.label} — Rata i Nadpłata (+${extraStr}) | CalcLedger`;
+      description = `Kredyt ${p.label} na ${p.years} lat (${p.rate}%): rata ${basePayStr}. Nadpłata ${extraStr}/mies. oszczędza ${savedIntStr} odsetek i skraca spłatę o ${savedTimeStr}.`;
+      h1 = `Kredyt ${p.label} — Kalkulator Raty i Nadpłaty`;
+      subtitle = `Dla kredytu ${p.label} na ${p.years} lat (${p.rate}%) rata wynosi ${basePayStr}. Regularna nadpłata ${extraStr} miesięcznie skraca kredyt o ${savedTimeStr} i oszczędza ${savedIntStr} odsetek.`;
+      faqs = [
+        {
+          q: `Ile wynosi rata kredytu ${p.label} na ${p.years} lat?`,
+          a: `Przy oprocentowaniu ${p.rate}% rocznie i ratach równych miesięczna rata kredytu ${p.label} na ${p.years} lat wynosi dokładnie ${basePayStr}, a łączne odsetki bez nadpłat to ${fmtRound(featured.baseInterest)}.`,
+        },
+        {
+          q: `Ile zaoszczędzę, nadpłacając kredyt ${p.label} o ${extraStr} miesięcznie?`,
+          a: `Dopłacając ${extraStr} miesięcznie do kredytu ${p.label} (${p.rate}%), skrócisz okres spłaty o ${savedTimeStr} i zaoszczędzisz ${savedIntStr} na odsetkach dla banku.`,
+        },
+        ...t.loan.faqs.slice(1),
+      ];
+    } else if (lang === 'de') {
+      title = `Kredit ${p.label} — Rate & Sondertilgung Rechner | CalcLedger`;
+      description = `Kredit ${p.label} (${p.years} Jahre, ${p.rate}%): Monatsrate ${basePayStr}. Mit ${extraStr}/Mon. Sondertilgung sparen Sie ${savedIntStr} Zinsen und ${savedTimeStr}.`;
+      h1 = `Kredit ${p.label} — Raten- & Sondertilgungsrechner`;
+      subtitle = `Bei ${p.label} über ${p.years} Jahre (${p.rate} %) liegt die Monatsrate bei ${basePayStr}. Mit ${extraStr} monatlicher Sondertilgung sparen Sie ${savedIntStr} Zinsen (${savedTimeStr} kürzer).`;
+      faqs = [
+        {
+          q: `Wie hoch ist die monatliche Rate für einen ${p.label} Kredit?`,
+          a: `Bei ${p.rate} % Sollzins und ${p.years} Jahren Laufzeit beträgt die Annuitätenrate für ${p.label} exakt ${basePayStr} pro Monat (Gesamtzinsen ohne Sondertilgung: ${fmtRound(featured.baseInterest)}).`,
+        },
+        {
+          q: `Was bringt eine monatliche Sondertilgung von ${extraStr} bei ${p.label}?`,
+          a: `Mit ${extraStr} extra pro Monat verkürzt sich die Rückzahlung um ${savedTimeStr} und Sie sparen ${savedIntStr} an Zinskosten.`,
+        },
+        ...t.loan.faqs.slice(1),
+      ];
+    } else {
+      title = `${p.label} Mortgage & Extra Payment Calculator | CalcLedger`;
+      description = `${p.label} loan at ${p.rate}% for ${p.years} yrs: ${basePayStr}/mo. Paying ${extraStr} extra monthly saves ${savedIntStr} in interest and cuts ${savedTimeStr} off payoff.`;
+      h1 = `${p.label} Mortgage & Early Payoff Calculator`;
+      subtitle = `A ${p.label} mortgage at ${p.rate}% over ${p.years} years costs ${basePayStr}/month. Adding ${extraStr}/month in extra principal saves ${savedIntStr} in interest and cuts ${savedTimeStr}.`;
+      faqs = [
+        {
+          q: `What is the monthly payment on a ${p.label} mortgage?`,
+          a: `At ${p.rate}% APR over ${p.years} years, principal and interest on a ${p.label} loan is ${basePayStr} per month (${fmtRound(featured.baseInterest)} total interest without extra payments).`,
+        },
+        {
+          q: `How much does paying ${extraStr} extra per month save on a ${p.label} loan?`,
+          a: `Adding ${extraStr} monthly toward principal cuts ${savedTimeStr} off your ${p.years}-year term and saves ${savedIntStr} in total interest.`,
+        },
+        ...t.loan.faqs.slice(1),
+      ];
+    }
+  }
+
+  const breadcrumbs = preset
+    ? [
+        { label: t.common.home, href: getRoutePath('home', lang), url: getAbsoluteUrl('home', lang) },
+        { label: t.nav.loan, href: getRoutePath('loan', lang), url: getAbsoluteUrl('loan', lang) },
+        { label: p.label, href: getRoutePath(pageKey, lang), url: getAbsoluteUrl(pageKey, lang) },
+      ]
+    : [
+        { label: t.common.home, href: getRoutePath('home', lang), url: getAbsoluteUrl('home', lang) },
+        { label: t.nav.loan, href: getRoutePath(pageKey, lang), url: getAbsoluteUrl(pageKey, lang) },
+      ];
 
   const amtPillsHtml = def.amtPills
     .map((v) => `<button type="button" class="pill-btn" data-loan-amt="${v}">${v >= 1000 ? `${v / 1000}k` : v}</button>`)
@@ -39,6 +148,43 @@ export function renderLoanPage(lang) {
     .map((v) => `<button type="button" class="pill-btn" data-loan-extra="${v}">${v === 0 ? '0' : `+${v}`}</button>`)
     .join('');
 
+  const matrixHeading =
+    lang === 'pl'
+      ? `Porównanie wariantów nadpłaty dla kredytu ${p ? p.label : fmtRound(def.amount)} (${def.rate}%, ${def.years} lat)`
+      : lang === 'de'
+        ? `Sondertilgungs-Vergleich für ${p ? p.label : fmtRound(def.amount)} (${def.rate} %, ${def.years} Jahre)`
+        : `Extra Payment Scenarios for a ${p ? p.label : fmtRound(def.amount)} Loan (${def.rate}%, ${def.years} yrs)`;
+
+  const matrixRowsHtml = scenarios
+    .map(
+      (s) => `<tr class="clickable-row" data-loan-extra="${s.extra}" tabindex="0" role="button">
+        <td class="num"><strong>${s.extra === 0 ? '0' : `+${fmtRound(s.extra)}`}</strong></td>
+        <td class="num">${fmtMoney(s.totalMonthly)}</td>
+        <td class="num"><strong>${fmtRound(s.interestSaved)}</strong></td>
+        <td class="num">${formatMonthsLabel(s.monthsSaved, t)}</td>
+        <td class="num">${formatMonthsLabel(s.months, t)}</td>
+      </tr>`
+    )
+    .join('');
+
+  const presetsHeading =
+    lang === 'pl'
+      ? 'Gotowe kalkulatory dla popularnych kwot kredytu'
+      : lang === 'de'
+        ? 'Kreditrechner für beliebte Darlehensbeträge'
+        : 'Popular Mortgage & Loan Amount Calculators';
+
+  const presetChipsHtml = LOAN_PRESETS.map((item) => {
+    const it = item[lang];
+    const isCurrent = preset && preset.key === item.key;
+    const sc = computeLoanScenario(it.amount, it.rate, it.years, 0);
+    return `<a class="chip-card${isCurrent ? ' is-current' : ''}" href="${escapeHtml(getRoutePath(`loan:${item.key}`, lang))}">
+      <span class="chip-card__code">${it.years} ${t.loan.unitYears} · ${it.rate}%</span>
+      <span class="chip-card__name">${escapeHtml(it.label)}</span>
+      <span class="chip-card__meta">${escapeHtml(fmtMoney(sc.baseMonthly))}/m</span>
+    </a>`;
+  }).join('');
+
   const bodyHtml = `
     <div class="container">
       ${renderBreadcrumbs(breadcrumbs)}
@@ -47,8 +193,8 @@ export function renderLoanPage(lang) {
         <div class="page-head__meta">
           <span class="status-tag">${escapeHtml(t.common.localBadge)}</span>
         </div>
-        <h1>${escapeHtml(t.loan.h1)}</h1>
-        <p class="page-head__sub">${escapeHtml(t.loan.subtitle)}</p>
+        <h1>${escapeHtml(h1)}</h1>
+        <p class="page-head__sub">${escapeHtml(subtitle)}</p>
       </header>
 
       ${renderAdSlot('topBanner', t)}
@@ -150,6 +296,26 @@ export function renderLoanPage(lang) {
         </div>
       </section>
 
+      <section class="content-section" aria-labelledby="loan-matrix-title">
+        <div class="section-head">
+          <h2 id="loan-matrix-title" class="section-heading">${escapeHtml(matrixHeading)}</h2>
+        </div>
+        <div class="table-wrap">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>${escapeHtml(t.loan.extraMonthlyLabel)}</th>
+                <th class="num">${escapeHtml(t.loan.outMonthlyTotal)}</th>
+                <th class="num">${escapeHtml(t.loan.outInterestSaved)}</th>
+                <th class="num">${escapeHtml(t.loan.outTimeSaved)}</th>
+                <th class="num">${escapeHtml(t.loan.outPayoffTime)}</th>
+              </tr>
+            </thead>
+            <tbody>${matrixRowsHtml}</tbody>
+          </table>
+        </div>
+      </section>
+
       <section class="content-section" aria-labelledby="loan-chart-title">
         <div class="chart-card">
           <div class="chart-card__head">
@@ -186,6 +352,11 @@ export function renderLoanPage(lang) {
         </div>
       </section>
 
+      <section class="content-section" aria-labelledby="loan-presets-title">
+        <h2 id="loan-presets-title" class="section-heading">${escapeHtml(presetsHeading)}</h2>
+        <div class="chip-grid">${presetChipsHtml}</div>
+      </section>
+
       <section class="content-section">
         <h2 class="section-heading">${escapeHtml(t.loan.guideHeading)}</h2>
         <p class="prose">${escapeHtml(t.loan.guideIntro)}</p>
@@ -195,7 +366,7 @@ export function renderLoanPage(lang) {
         </div>
       </section>
 
-      ${renderFaqSection(t.loan.faqs, t.common.faqHeading)}
+      ${renderFaqSection(faqs, t.common.faqHeading)}
       ${renderRelatedCalculators('loan', lang, t)}
       ${renderAdSlot('bottomBanner', t)}
     </div>
@@ -205,14 +376,14 @@ export function renderLoanPage(lang) {
     lang,
     pageKey,
     activeNav: 'loan',
-    title: t.loan.title,
-    description: t.loan.description,
+    title,
+    description,
     bodyHtml,
     includeCalculatorScript: true,
     jsonLd: [
       buildSoftwareAppJsonLd({
-        name: t.loan.h1,
-        description: t.loan.description,
+        name: h1,
+        description,
         url: getAbsoluteUrl(pageKey, lang),
         lang,
         featureList: [
@@ -224,7 +395,7 @@ export function renderLoanPage(lang) {
         ],
       }),
       buildBreadcrumbJsonLd(breadcrumbs),
-      buildFaqJsonLd(t.loan.faqs),
+      buildFaqJsonLd(faqs),
     ],
   });
 }

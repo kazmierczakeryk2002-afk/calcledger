@@ -9,6 +9,7 @@ import { VAT_COUNTRIES } from '../data/vat-countries.js';
 import { MARKETPLACES } from '../data/marketplaces.js';
 import { PAYMENT_PROVIDERS } from '../data/payment-providers.js';
 import { COMPARISONS } from '../data/comparisons.js';
+import { SALARY_PRESETS, LOAN_PRESETS } from '../data/personal-presets.js';
 import {
   PERSONAL_TOOL_KEYS,
   BUSINESS_TOOL_KEYS,
@@ -159,6 +160,7 @@ export function buildWebSiteJsonLd(lang, description) {
       knowsAbout: [
         'Salary, Pay Raise, and 50/30/20 Household Budgeting',
         'Mortgage, Loan Payments, and Early Overpayment Amortization',
+        'Fuel Cost, Road Trip Split, Commute Budget, and EV vs Petrol Comparison',
         'Compound Interest, Savings Goals, Capital Gains Tax, and Inflation',
         'Everyday Percentages, Stacked Discounts, and Percentage Change',
         'European Value-Added Tax (VAT / MwSt / TVA / BTW / IVA)',
@@ -200,6 +202,7 @@ export function renderRelatedCalculators(currentTool, lang, t) {
   const allCards = [
     { key: 'salary', title: t.salary.cardTitle, desc: t.salary.cardDesc, badge: t.nav.personal },
     { key: 'loan', title: t.loan.cardTitle, desc: t.loan.cardDesc, badge: t.nav.personal },
+    { key: 'fuel', title: t.fuel.cardTitle, desc: t.fuel.cardDesc, badge: t.nav.personal },
     { key: 'compound', title: t.compound.cardTitle, desc: t.compound.cardDesc, badge: t.nav.personal },
     { key: 'percentage', title: t.percentage.cardTitle, desc: t.percentage.cardDesc, badge: t.nav.personal },
     { key: 'vat', title: t.vat.cardTitle, desc: t.vat.cardDesc, badge: 'VAT / MwSt' },
@@ -272,6 +275,7 @@ export function renderLayout({
     [
       { key: 'salary', label: t.nav.salary, title: t.salary.cardTitle },
       { key: 'loan', label: t.nav.loan, title: t.loan.cardTitle },
+      { key: 'fuel', label: t.nav.fuel, title: t.fuel.cardTitle },
       { key: 'compound', label: t.nav.compound, title: t.compound.cardTitle },
       { key: 'percentage', label: t.nav.percentage, title: t.percentage.cardTitle },
     ],
@@ -375,6 +379,18 @@ export function renderLayout({
       c: PERSONAL_TOOL_KEYS.includes(i.key) ? t.nav.personal : t.nav.business,
       h: getRoutePath(i.key, lang),
       k: `${i.label} ${t[i.key]?.cardDesc || ''}`.toLowerCase(),
+    })),
+    ...SALARY_PRESETS.map((sp) => ({
+      t: `${sp[lang].label} (${t.nav.salary})`,
+      c: t.nav.personal,
+      h: getRoutePath(`salary:${sp.key}`, lang),
+      k: `${sp[lang].label} ${sp[lang].amount} salary pensja gehalt budget 50/30/20`.toLowerCase(),
+    })),
+    ...LOAN_PRESETS.map((lp) => ({
+      t: `${lp[lang].label} (${t.nav.loan})`,
+      c: t.nav.personal,
+      h: getRoutePath(`loan:${lp.key}`, lang),
+      k: `${lp[lang].label} ${lp[lang].amount} loan mortgage kredyt nadplata sondertilgung`.toLowerCase(),
     })),
     ...sortByKeyOrder(VAT_COUNTRIES, market.vatCountryOrder).map((c) => ({
       t: `${c.names[lang]} VAT (${c.standardRate}%)`,
@@ -526,6 +542,23 @@ export function renderLayout({
       outChangePct: t.percentage.outChangePct,
       outChangeDiff: t.percentage.outChangeDiff,
       outMultiplier: t.percentage.outMultiplier,
+    },
+    fuel: {
+      distanceLabelTrip: t.fuel.distanceLabelTrip,
+      distanceLabelCommute: t.fuel.distanceLabelCommute,
+      consumptionLabelFuel: t.fuel.consumptionLabelFuel,
+      consumptionLabelEv: t.fuel.consumptionLabelEv,
+      priceLabelFuel: t.fuel.priceLabelFuel,
+      priceLabelEv: t.fuel.priceLabelEv,
+      outTripCost: t.fuel.outTripCost,
+      outMonthlyCommute: t.fuel.outMonthlyCommute,
+      outPerPerson: t.fuel.outPerPerson,
+      outYearlyCommute: t.fuel.outYearlyCommute,
+      outCostPer100: t.fuel.outCostPer100,
+      typePetrol: t.fuel.typePetrol,
+      typeDiesel: t.fuel.typeDiesel,
+      typeLpg: t.fuel.typeLpg,
+      typeEv: t.fuel.typeEv,
     },
   };
 

@@ -8,6 +8,7 @@ import { VAT_COUNTRIES } from '../src/data/vat-countries.js';
 import { MARKETPLACES } from '../src/data/marketplaces.js';
 import { PAYMENT_PROVIDERS } from '../src/data/payment-providers.js';
 import { COMPARISONS } from '../src/data/comparisons.js';
+import { SALARY_PRESETS, LOAN_PRESETS } from '../src/data/personal-presets.js';
 
 import { renderHomePage, renderNotFoundPage } from '../src/templates/home.js';
 import { renderVatPage } from '../src/templates/vat.js';
@@ -21,6 +22,7 @@ import { renderCompoundPage } from '../src/templates/compound.js';
 import { renderLoanPage } from '../src/templates/loan.js';
 import { renderSalaryPage } from '../src/templates/salary.js';
 import { renderPercentagePage } from '../src/templates/percentage.js';
+import { renderFuelPage } from '../src/templates/fuel.js';
 import { renderLegalPage } from '../src/templates/legal.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -62,12 +64,14 @@ function generateSitemapXml() {
     const priority =
       pageKey === 'home'
         ? '1.0'
-        : ['vat', 'marketplace', 'payment', 'roas', 'margin', 'freelance', 'compound', 'loan', 'salary', 'percentage'].includes(pageKey)
+        : ['vat', 'marketplace', 'payment', 'roas', 'margin', 'freelance', 'compound', 'loan', 'salary', 'percentage', 'fuel'].includes(pageKey)
           ? '0.9'
           : pageKey.startsWith('vat:') ||
               pageKey.startsWith('marketplace:') ||
               pageKey.startsWith('payment:') ||
-              pageKey.startsWith('compare:')
+              pageKey.startsWith('compare:') ||
+              pageKey.startsWith('salary:') ||
+              pageKey.startsWith('loan:')
             ? '0.8'
             : '0.5';
 
@@ -150,16 +154,35 @@ function generateLlmsTxt() {
       `- [${c.sideA.name} vs ${c.sideB.name} Comparison](${getAbsoluteUrl(`compare:${c.key}`, 'en')}): ${c.seo.en.summary} Also in [DE](${getAbsoluteUrl(`compare:${c.key}`, 'de')}) and [PL](${getAbsoluteUrl(`compare:${c.key}`, 'pl')}).`
   ).join('\n');
 
+  const salaryPresetLines = SALARY_PRESETS.map(
+    (s) =>
+      `- [${s.en.label} Hourly & 50/30/20 Budget](${getAbsoluteUrl(`salary:${s.key}`, 'en')}) · [DE (${s.de.label})](${getAbsoluteUrl(`salary:${s.key}`, 'de')}) · [PL (${s.pl.label})](${getAbsoluteUrl(`salary:${s.key}`, 'pl')})`
+  ).join('\n');
+
+  const loanPresetLines = LOAN_PRESETS.map(
+    (l) =>
+      `- [${l.en.label} Mortgage & Extra Payoff](${getAbsoluteUrl(`loan:${l.key}`, 'en')}) · [DE (${l.de.label})](${getAbsoluteUrl(`loan:${l.key}`, 'de')}) · [PL (${l.pl.label})](${getAbsoluteUrl(`loan:${l.key}`, 'pl')})`
+  ).join('\n');
+
   return `# ${SITE_CONFIG.brandName}
 
-> CalcLedger (${SITE_CONFIG.domain}) is a free, privacy-first suite of 10 browser-local financial calculators (Everyday Personal Finance & Business/E-Commerce) plus 1-on-1 platform comparisons available in English, German (Deutsch), and Polish (Polski), supporting EUR, USD, GBP, CHF, and PLN with shareable URL parameters and zero account or server tracking.
+> CalcLedger (${SITE_CONFIG.domain}) is a free, privacy-first suite of 11 browser-local financial calculators (Everyday Personal Finance & Business/E-Commerce) plus 1-on-1 platform comparisons and localized salary & mortgage guides available in English, German (Deutsch), and Polish (Polski), supporting EUR, USD, GBP, CHF, and PLN with shareable URL parameters and zero account or server tracking.
 
 ## Everyday & Personal Finance Calculators
 
 - [Salary, Pay Raise & 50/30/20 Budget Calculator](${getAbsoluteUrl('salary', 'en')}): Net or Gross-to-Net salary conversion (monthly, yearly, daily, hourly), pay raise simulator, 50/30/20 budget planner, 6-month emergency fund, and purchase-cost-in-work-hours check. ([DE](${getAbsoluteUrl('salary', 'de')}) · [PL](${getAbsoluteUrl('salary', 'pl')}))
 - [Loan, Mortgage & Extra Payment Calculator](${getAbsoluteUrl('loan', 'en')}): Monthly payment, total interest, monthly & one-time overpayment savings (years & money saved), remaining-balance SVG chart, and downloadable CSV amortization schedule. ([DE](${getAbsoluteUrl('loan', 'de')}) · [PL](${getAbsoluteUrl('loan', 'pl')}))
+- [Fuel Cost, Road Trip & Commute Calculator](${getAbsoluteUrl('fuel', 'en')}): Trip fuel cost, per-passenger split, monthly & yearly work commute expenses, and live Petrol vs Diesel vs LPG vs Electric (EV) comparison. ([DE](${getAbsoluteUrl('fuel', 'de')}) · [PL](${getAbsoluteUrl('fuel', 'pl')}))
 - [Savings, Compound Interest & ROI Calculator](${getAbsoluteUrl('compound', 'en')}): Portfolio growth & reverse savings-goal projection with interactive sliders, capital gains tax (0%, 19% PL Belka, 26.375% DE Abgeltungssteuer), inflation-adjusted real purchasing power, SVG chart, year-by-year table, and CSV export. ([DE](${getAbsoluteUrl('compound', 'de')}) · [PL](${getAbsoluteUrl('compound', 'pl')}))
 - [Percentage, Discount & Change Calculator](${getAbsoluteUrl('percentage', 'en')}): Sale discounts with stacked extra promo codes, X% of a number, and percentage increase/decrease with clickable discount reference table. ([DE](${getAbsoluteUrl('percentage', 'de')}) · [PL](${getAbsoluteUrl('percentage', 'pl')}))
+
+## Salary & Budget Guides (6 Tiers × 3 Languages)
+
+${salaryPresetLines}
+
+## Loan & Mortgage Early Payoff Guides (6 Tiers × 3 Languages)
+
+${loanPresetLines}
 
 ## Business, E-Commerce & B2B Calculators
 
@@ -189,7 +212,7 @@ ${payLines}
 ## Full Reference & Policies
 
 - [Full Machine-Readable Reference (Formulas & Tax Tables)](${SITE_CONFIG.domain}/llms-full.txt)
-- [XML Sitemap (126 Localized Pages)](${SITE_CONFIG.domain}/sitemap.xml)
+- [XML Sitemap (165 Localized Pages)](${SITE_CONFIG.domain}/sitemap.xml)
 - [About CalcLedger](${getAbsoluteUrl('about', 'en')})
 - [Privacy Policy](${getAbsoluteUrl('privacy', 'en')})
 - [Terms & Disclaimer](${getAbsoluteUrl('terms', 'en')})
@@ -233,6 +256,7 @@ Contact: ${SITE_CONFIG.contactEmail}
 12. **Loan / Mortgage Annuity Payment:** Monthly Payment = P * [r * (1 + r)^n] / [(1 + r)^n - 1], with monthly extra principal and lump-sum overpayment amortization.
 13. **Salary Hourly Net & 50/30/20 Budget:** Hourly Net = Annual Net / (Hours/Week * 52); Purchase Work Hours = Purchase Price / Hourly Net.
 14. **Stacked Discount & % Change:** Final Price = Price * (1 - d1) * (1 - d2); % Change = ((New - Old) / Old) * 100.
+15. **Fuel, Trip & Commute Cost:** Trip Cost = (Distance / 100) * Consumption * Unit Price; Monthly Commute = One-Way km * 2 * Workdays * Cost/km.
 
 ## European VAT Rates Table (15 Jurisdictions)
 
@@ -383,11 +407,24 @@ function build() {
     writeRouteHtml(getRoutePath('compound', lang), renderCompoundPage(lang));
     pageCount++;
 
-    // 8b. Everyday & Personal Finance Calculators (Loan, Salary/Budget, Percentage/Discount)
-    writeRouteHtml(getRoutePath('loan', lang), renderLoanPage(lang));
+    // 8b. Everyday & Personal Finance Calculators (Loan + 6 tiers, Salary/Budget + 6 tiers, Fuel/Commute, Percentage/Discount)
+    writeRouteHtml(getRoutePath('loan', lang), renderLoanPage(lang, null));
     pageCount++;
-    writeRouteHtml(getRoutePath('salary', lang), renderSalaryPage(lang));
+    for (const lp of LOAN_PRESETS) {
+      writeRouteHtml(getRoutePath(`loan:${lp.key}`, lang), renderLoanPage(lang, lp));
+      pageCount++;
+    }
+
+    writeRouteHtml(getRoutePath('salary', lang), renderSalaryPage(lang, null));
     pageCount++;
+    for (const sp of SALARY_PRESETS) {
+      writeRouteHtml(getRoutePath(`salary:${sp.key}`, lang), renderSalaryPage(lang, sp));
+      pageCount++;
+    }
+
+    writeRouteHtml(getRoutePath('fuel', lang), renderFuelPage(lang));
+    pageCount++;
+
     writeRouteHtml(getRoutePath('percentage', lang), renderPercentagePage(lang));
     pageCount++;
 
