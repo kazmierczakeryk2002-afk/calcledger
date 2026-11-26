@@ -548,9 +548,14 @@ export function renderLayout({
   ${canonical ? `<meta property="og:url" content="${canonical}">` : ''}
   <meta property="og:locale" content="${ogLocale}">
   ${altLocales}
-  <meta name="twitter:card" content="summary">
+  <meta property="og:image" content="${SITE_CONFIG.domain}/assets/img/og-${lang}.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="${escapeHtml(title)}">
+  <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="${escapeHtml(title)}">
   <meta name="twitter:description" content="${escapeHtml(description)}">
+  <meta name="twitter:image" content="${SITE_CONFIG.domain}/assets/img/og-${lang}.png">
   <link rel="icon" type="image/svg+xml" href="/assets/img/favicon.svg">
   <link rel="manifest" href="/site.webmanifest">
   <link rel="preconnect" href="https://fonts.googleapis.com">

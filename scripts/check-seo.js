@@ -82,6 +82,9 @@ function runAudit() {
     'assets/js/app.js',
     'assets/js/calculators.js',
     'assets/img/favicon.svg',
+    'assets/img/og-en.png',
+    'assets/img/og-de.png',
+    'assets/img/og-pl.png',
   ];
 
   for (const rel of requiredFiles) {
