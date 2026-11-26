@@ -40,6 +40,9 @@ export const SITE_CONFIG = {
     bottomBanner: '',
   },
 
+  // IndexNow (instant indexing ping for Bing, ChatGPT Search, Yandex, Seznam, Naver)
+  indexNowKey: 'c41c1ed9e7b24a8f91d63e0a5f82b47c',
+
   // Build metadata
   buildDate: new Date().toISOString().slice(0, 10),
   copyrightYear: 2026,

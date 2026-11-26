@@ -407,6 +407,9 @@ function build() {
   fs.writeFileSync(path.join(DIST, 'ads.txt'), generateAdsTxt(), 'utf8');
   fs.writeFileSync(path.join(DIST, 'llms.txt'), generateLlmsTxt(), 'utf8');
   fs.writeFileSync(path.join(DIST, 'llms-full.txt'), generateLlmsFullTxt(), 'utf8');
+  if (SITE_CONFIG.indexNowKey) {
+    fs.writeFileSync(path.join(DIST, `${SITE_CONFIG.indexNowKey}.txt`), `${SITE_CONFIG.indexNowKey}\n`, 'utf8');
+  }
   fs.writeFileSync(path.join(DIST, '_headers'), generateCloudflareHeaders(), 'utf8');
   fs.writeFileSync(path.join(DIST, 'site.webmanifest'), generateWebManifest(), 'utf8');
 

@@ -90,6 +90,15 @@ function runAudit() {
     }
   }
 
+  if (SITE_CONFIG.indexNowKey) {
+    const keyFile = path.join(DIST, `${SITE_CONFIG.indexNowKey}.txt`);
+    if (!fs.existsSync(keyFile)) {
+      fail(`Missing IndexNow key file: dist/${SITE_CONFIG.indexNowKey}.txt`);
+    } else if (fs.readFileSync(keyFile, 'utf8').trim() !== SITE_CONFIG.indexNowKey) {
+      fail(`IndexNow key file content does not match SITE_CONFIG.indexNowKey`);
+    }
+  }
+
   const seenTitles = new Map();
   const seenDescs = new Map();
   const hreflangGraph = new Map();
